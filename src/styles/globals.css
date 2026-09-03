@@ -1,0 +1,25 @@
+/*
+ * Tailwind v4 bez "preflight" resetu (kolidoval by s Mantine defaultními styly) —
+ * importujeme jen theme tokeny a utility třídy, žádnou base/reset vrstvu.
+ * Mantine styly jedou ve vlastní CSS layer "mantine", řazené PŘED utilities, aby
+ * Tailwind utility třídy mohly Mantine komponenty přebít, pokud je potřeba.
+ */
+@layer theme, mantine, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@import "@mantine/core/styles.layer.css" layer(mantine);
+@import "@mantine/dates/styles.layer.css" layer(mantine);
+@import "@mantine/notifications/styles.layer.css" layer(mantine);
+@import "@mantine/dropzone/styles.layer.css" layer(mantine);
+@import "mantine-react-table/styles.css" layer(mantine);
+
+@theme {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+body {
+  font-family: var(--font-sans);
+}
