@@ -131,5 +131,21 @@ export const authConfig = {
         managerId: token.managerId,
       },
     }),
+    // The default callback resolves relative callback URLs against a server-computed
+    // `baseUrl` — in this self-hosted, no-reverse-proxy Docker setup (port published as
+    // 9005:3000, no AUTH_URL/NEXTAUTH_URL set) that `baseUrl` resolves to the
+    // container-internal `http://localhost:3000` instead of the host the browser is
+    // actually on, so e.g. signOut()'s redirect lands on a port nothing listens on.
+    // Stripping to a path and letting the browser resolve it against its own current
+    // origin sidesteps that entirely, for any host/port this ever runs on.
+    redirect: ({ url }) => {
+      if (url.startsWith("/")) return url;
+      try {
+        const { pathname, search } = new URL(url);
+        return `${pathname}${search}`;
+      } catch {
+        return "/";
+      }
+    },
   },
 } satisfies NextAuthConfig;

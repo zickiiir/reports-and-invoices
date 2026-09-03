@@ -13,12 +13,25 @@ const config = {
       {
         source: "/:path*",
         headers: [
-          // The app is never embedded anywhere (no <iframe> use case) — DENY is fine,
-          // no need for just SAMEORIGIN.
+          // The app itself is never embedded anywhere — DENY is fine here. The PDF/report
+          // endpoints below need a same-origin exception (see their own header block):
+          // they're deliberately previewed in an in-app <iframe>, and DENY blocks that too.
           { key: "X-Frame-Options", value: "DENY" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
         ],
+      },
+      {
+        // Later header blocks override earlier ones for the same key on a matching path
+        // (see Next.js docs on header overriding) — this narrows X-Frame-Options back to
+        // SAMEORIGIN just for the routes `ReportPreviewModal` iframes, so the generic
+        // DENY above still applies everywhere else.
+        source: "/api/invoices/:id/pdf",
+        headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }],
+      },
+      {
+        source: "/api/timesheets/report",
+        headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }],
       },
     ];
   },

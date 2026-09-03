@@ -1,5 +1,21 @@
 # reports-and-invoices
 
+## 1.0.2
+
+### Patch Changes
+
+- Oprava náhledu PDF (faktura i výkazy) v appce — globální bezpečnostní hlavička
+  zakazující zobrazení stránky v rámci blokovala i vlastní náhled PDF v okně appky.
+  Nastavení stahování souborů se nemění.
+
+## 1.0.1
+
+### Patch Changes
+
+- Oprava odhlášení, po kterém appka přesměrovávala na neexistující adresu (port 3000
+  místo skutečného portu, na kterém appka běží) — přesměrování teď funguje bez ohledu na
+  to, na jaké adrese/portu je appka nasazená.
+
 ## 1.0.0
 
 ### Major Changes
