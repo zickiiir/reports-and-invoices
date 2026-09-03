@@ -1,0 +1,45 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "9005:3000"
+    # Secrets do NOT go through docker-compose "${VAR}" interpolation (see the db
+    # service below) — `env_file` passes them into the container as raw values.
+    # docker-entrypoint.sh itself builds and URL-encodes DATABASE_URL from
+    # POSTGRES_PASSWORD.
+    env_file: .env.production
+    environment:
+      # In production Auth.js rejects requests to a hostname it doesn't recognize
+      # (UntrustedHost) unless running on Vercel — self-hosted in Docker needs to
+      # explicitly opt in to trust.
+      AUTH_TRUST_HOST: "true"
+      DATA_DIR: /data
+    volumes:
+      - app-data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    # Same reason as the app service — POSTGRES_PASSWORD must not go through "${VAR}"
+    # interpolation in this file (see the comment above).
+    env_file: .env.production
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: reports_and_invoices
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  app-data:

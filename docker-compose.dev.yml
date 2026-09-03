@@ -1,0 +1,69 @@
+# Development variant of docker-compose.yml — `next dev` runs in a container with this
+# directory mounted as a bind volume (hot reload, editing on the host, no logging into
+# the container). Replaces both start-database.sh and `pnpm dev` on the host.
+#
+# Usage:
+#   cp .env.example .env   # fill in AUTH_SECRET (npx auth secret)
+#   docker compose -f docker-compose.dev.yml up --build
+#
+# Both the schema (db:push) and the seed (seed:dev) run automatically on startup (see
+# "command" below) — no manual step needed, same as production's docker-entrypoint.sh
+# does migrate+seed.
+#
+# Don't run this alongside start-database.sh or docker-compose.yml (production) —
+# container names and port 5432 collide.
+
+name: reports-and-invoices-dev
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    # The lockfile is verified/reconciled on every startup, so no image rebuild is
+    # needed after every dependency change (only after changing the Dockerfile itself).
+    # "--force" on db:push is safe only because this is a disposable dev DB
+    # (pgdata-dev) — without it, "drizzle-kit push" would wait for interactive
+    # confirmation on a destructive change and the container startup would silently hang.
+    command: sh -c "pnpm install --frozen-lockfile && pnpm db:push --force && pnpm seed:dev && exec pnpm dev"
+    env_file: .env
+    environment:
+      # Inside the Docker network the DB is named "db", not "localhost" like in .env.
+      DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/reports_and_invoices"
+      # .env leaves this empty (local `pnpm dev` downloads its own Chromium) — in the
+      # container we use the system one, otherwise Puppeteer has nothing to launch (PUPPETEER_SKIP_DOWNLOAD).
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser
+      # Without a TTY, "pnpm install" after a dependency change would refuse to clear
+      # node_modules on its own (ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY) — CI=true switches it to non-interactive mode.
+      CI: "true"
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      # Anonymous volumes, so node_modules/.next from the image don't get overwritten
+      # by the bind mount (the host doesn't have Linux binaries for esbuild/puppeteer etc.).
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: reports_and_invoices
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata-dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata-dev:
