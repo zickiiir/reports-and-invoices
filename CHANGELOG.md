@@ -1,5 +1,13 @@
 # reports-and-invoices
 
+## 1.0.3
+
+### Patch Changes
+
+- Oprava přihlášení, které po opravě odhlášení ve verzi 1.0.1 selhávalo s chybou „/login is
+  not a valid URL“ — přesměrování po přihlášení i odhlášení teď vede na adresu, kterou má
+  otevřenou prohlížeč, bez ohledu na to, na jakém portu je appka nasazená.
+
 ## 1.0.2
 
 ### Patch Changes

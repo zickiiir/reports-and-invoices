@@ -131,21 +131,39 @@ export const authConfig = {
         managerId: token.managerId,
       },
     }),
-    // The default callback resolves relative callback URLs against a server-computed
-    // `baseUrl` — in this self-hosted, no-reverse-proxy Docker setup (port published as
-    // 9005:3000, no AUTH_URL/NEXTAUTH_URL set) that `baseUrl` resolves to the
-    // container-internal `http://localhost:3000` instead of the host the browser is
-    // actually on, so e.g. signOut()'s redirect lands on a port nothing listens on.
-    // Stripping to a path and letting the browser resolve it against its own current
-    // origin sidesteps that entirely, for any host/port this ever runs on.
-    redirect: ({ url }) => {
-      if (url.startsWith("/")) return url;
-      try {
-        const { pathname, search } = new URL(url);
-        return `${pathname}${search}`;
-      } catch {
-        return "/";
-      }
-    },
+    redirect: ({ url, baseUrl }) => resolveSameOriginRedirect(url, baseUrl),
   },
 } satisfies NextAuthConfig;
+
+/**
+ * Same-origin-only redirect, like Auth.js's default callback, but resolved against an
+ * explicitly given origin. The `baseUrl` Auth.js computes is unreliable here: in this
+ * self-hosted, no-reverse-proxy Docker setup (port published as 9005:3000, no
+ * AUTH_URL/NEXTAUTH_URL) it resolves to the container-internal
+ * `http://localhost:3000`, so `src/server/auth/index.ts` passes the origin taken from
+ * the request's Host header instead (see `requestOrigin`).
+ *
+ * The result must stay absolute: the client-side `signIn(..., { redirect: false })`
+ * parses it with `new URL()` and throws on a bare path.
+ */
+export function resolveSameOriginRedirect(url: string, origin: string): string {
+  try {
+    const target = new URL(url, origin);
+    return target.origin === new URL(origin).origin ? target.href : origin;
+  } catch {
+    return origin;
+  }
+}
+
+/** The origin the browser actually used for this request — the Host header survives
+ * Docker's port mapping, unlike the URL Next.js reconstructs inside the container. */
+export function requestOrigin(headers: Headers): string | null {
+  const host = headers.get("x-forwarded-host") ?? headers.get("host");
+  if (!host) return null;
+  const proto = headers.get("x-forwarded-proto") ?? "http";
+  try {
+    return new URL(`${proto}://${host}`).origin;
+  } catch {
+    return null;
+  }
+}
