@@ -1,5 +1,15 @@
 # reports-and-invoices
 
+## 1.1.0
+
+### Minor Changes
+
+- Přehled hodin podle úkolů v obrazovce výkazu (tlačítko „Úkoly“) — součty hodin i MD
+  (8 h) za každý úkol s rozpadem podle podřádků, a samostatný pohled na jednotlivé podřádky
+  (typicky tikety) sečtené napříč úkoly, s vyhledáváním. Záznamy, kde je v jednom časovém
+  bloku víc podřádků najednou, nejde automaticky rozdělit — nezapočítávají se, ale přehled
+  ukáže, na kterém řádku výkazu jsou, a jedním klikem na ně skočí v editoru.
+
 ## 1.0.3
 
 ### Patch Changes

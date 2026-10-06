@@ -66,6 +66,11 @@ describe("parseTimesheet", () => {
     expect(firstEntry.description).toEqual(["Ranní úkol", "pokračování popisu"]);
   });
 
+  it("records the line where each entry starts (its first description line)", () => {
+    const acme = result.perPerson.find((p) => p.alias === "ACME")!;
+    expect(acme.entries.map((e) => e.line)).toEqual([4, 8, 18]);
+  });
+
   it("supports a date without a year (23.7. → fills in the year from period)", () => {
     const acme = result.perPerson.find((p) => p.alias === "ACME")!;
     expect(acme.entries.some((e) => e.date === "2026-07-23")).toBe(true);

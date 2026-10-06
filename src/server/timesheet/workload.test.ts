@@ -13,7 +13,7 @@ const MON_FRI: WorkloadSettings = {
 function person(alias: string, entries: { date: string; minutes: number }[]): PersonTimesheet {
   return {
     alias,
-    entries: entries.map((e, idx) => ({ ...e, idx, description: [] })),
+    entries: entries.map((e, idx) => ({ ...e, idx, line: idx + 1, description: [] })),
     totalMinutes: entries.reduce((sum, e) => sum + e.minutes, 0),
   };
 }

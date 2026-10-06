@@ -17,6 +17,9 @@
 export interface TimesheetEntryRow {
   date: string; // YYYY-MM-DD
   idx: number;
+  /** 1-based line in the raw timesheet where the entry starts (its first description
+   * line, or the closing time/minutes line if it has none) — for pointing the user to it. */
+  line: number;
   minutes: number;
   /** The first line is the task title (without the dash), the rest are sub-lines ("- …"). */
   description: string[];
@@ -94,8 +97,9 @@ export function parseTimesheet(
   let datum = "";
   let od = "";
   let co: string[] = [];
+  let coLine = 0; // line of the first `co` line
 
-  const pushEntry = (minutes: number) => {
+  const pushEntry = (minutes: number, closingLine: number) => {
     if (!kdo) return; // no point recording an entry without an alias (same as in Perl, where it'd go to OUT{''})
     if (!perPerson.has(kdo)) {
       perPerson.set(kdo, { alias: kdo, entries: [], totalMinutes: 0 });
@@ -104,6 +108,7 @@ export function parseTimesheet(
     person.entries.push({
       date: datum,
       idx,
+      line: co.length > 0 ? coLine : closingLine,
       minutes,
       description: [...co],
     });
@@ -137,7 +142,7 @@ export function parseTimesheet(
 
     if (minutesOnlyMatch && datum !== "") {
       // MINUTES — duration given directly in minutes
-      pushEntry(Number(minutesOnlyMatch[1]));
+      pushEntry(Number(minutesOnlyMatch[1]), lineNumber);
       od = "";
       co = [];
     } else if (timeMatch) {
@@ -149,7 +154,7 @@ export function parseTimesheet(
         // day and 24h is added.
         let trvani = minutesOf(time) - minutesOf(od);
         if (trvani < 0) trvani += 24 * 60;
-        pushEntry(trvani);
+        pushEntry(trvani, lineNumber);
         od = time;
         co = [];
       } else {
@@ -172,6 +177,7 @@ export function parseTimesheet(
       datum = `${r}-${m!.padStart(2, "0")}-${d!.padStart(2, "0")}`;
     } else if (RE_DESC.test(line)) {
       // WHAT — description (accumulated into a single entry)
+      if (co.length === 0) coLine = lineNumber;
       co.push(stripDescriptionDash(line));
     } else if (RE_TOKEN.test(line)) {
       // WHO — customer alias

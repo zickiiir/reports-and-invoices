@@ -44,6 +44,7 @@ import {
   IconFileInvoice,
   IconFileTypeHtml,
   IconFileTypePdf,
+  IconListDetails,
   IconSettings,
   IconUpload,
 } from "@tabler/icons-react";
@@ -67,6 +68,7 @@ import { computeWorkloadStats } from "~/server/timesheet/workload";
 import { api } from "~/trpc/react";
 
 import { WorkloadCard } from "../dashboard-cards";
+import { TaskSummaryModal } from "./task-summary-modal";
 import { TimesheetImportModal } from "./timesheet-import-modal";
 
 const MONTH_NAMES = [
@@ -147,6 +149,7 @@ export function TimesheetEditor({
     new Set(),
   );
   const [importOpened, setImportOpened] = useState(false);
+  const [tasksOpened, setTasksOpened] = useState(false);
   const [selectedAliases, setSelectedAliases] = useState<Set<string>>(
     new Set(),
   );
@@ -583,6 +586,24 @@ export function TimesheetEditor({
         filename={preview?.filename ?? ""}
       />
 
+      <TaskSummaryModal
+        opened={tasksOpened}
+        onClose={() => setTasksOpened(false)}
+        title={`Hodiny podle úkolů — ${MONTH_NAMES[Number(period.slice(4, 6)) - 1]} ${period.slice(0, 4)}`}
+        perPerson={liveResult?.perPerson ?? []}
+        onJumpToLine={(lineNumber) => {
+          const view = viewRef.current;
+          if (!view || lineNumber > view.state.doc.lines) return;
+          setTasksOpened(false);
+          const line = view.state.doc.line(lineNumber);
+          view.dispatch({
+            selection: EditorSelection.cursor(line.from),
+            effects: EditorView.scrollIntoView(line.from, { y: "center" }),
+          });
+          view.focus();
+        }}
+      />
+
       <Grid.Col span={{ base: 12, md: 6 }}>
         <Card withBorder padding="sm" h="100%">
           <Group justify="space-between" mb="sm">
@@ -726,6 +747,15 @@ export function TimesheetEditor({
             {liveResult ? (
               <Stack gap="sm">
                 <Group justify="flex-end">
+                  <Button
+                    size="xs"
+                    variant="light"
+                    leftSection={<IconListDetails size={14} />}
+                    disabled={liveResult.timesheets.length === 0}
+                    onClick={() => setTasksOpened(true)}
+                  >
+                    Úkoly
+                  </Button>
                   {isOwner && (
                     <Button
                       component={Link}
