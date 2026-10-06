@@ -1,5 +1,12 @@
 # reports-and-invoices
 
+## 1.2.0
+
+### Minor Changes
+
+- Historie verzí přímo v appce — kliknutím na číslo verze v hlavičce se otevře přehled všech
+  verzí s popisem změn (novinky, opravy) převzatým z changelogu.
+
 ## 1.1.0
 
 ### Minor Changes

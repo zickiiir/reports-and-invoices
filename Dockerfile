@@ -73,6 +73,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
+# Read at runtime by the "what's new" modal (server/api/routers/meta.ts).
+COPY --from=builder /app/CHANGELOG.md ./CHANGELOG.md
 COPY --from=builder /app/next.config.js ./next.config.js
 COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
 COPY --from=builder /app/drizzle ./drizzle

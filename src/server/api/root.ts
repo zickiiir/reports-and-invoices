@@ -1,5 +1,6 @@
 import { customerRouter } from "~/server/api/routers/customer";
 import { invoiceRouter } from "~/server/api/routers/invoice";
+import { metaRouter } from "~/server/api/routers/meta";
 import { nextcloudRouter } from "~/server/api/routers/nextcloud";
 import { payerRouter } from "~/server/api/routers/payer";
 import { timesheetRouter } from "~/server/api/routers/timesheet";
@@ -18,6 +19,7 @@ export const appRouter = createTRPCRouter({
   timesheet: timesheetRouter,
   invoice: invoiceRouter,
   nextcloud: nextcloudRouter,
+  meta: metaRouter,
 });
 
 // export type definition of API

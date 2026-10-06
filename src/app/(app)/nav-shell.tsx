@@ -32,6 +32,8 @@ import { signOut } from "next-auth/react";
 import { usePrimaryColor, type PrimaryColorOption } from "~/app/primary-color";
 import { type ColorSchemePreference, type UserRole } from "~/server/db/schema";
 
+import { ChangelogModal } from "./changelog-modal";
+
 const ROLE_LABEL: Record<UserRole, string> = {
   super_user: "Super-user",
   senior_programmer: "Senior programátor",
@@ -53,6 +55,8 @@ export function NavShell({
   children: React.ReactNode;
 }) {
   const [mobileOpened, { toggle: toggleMobile }] = useDisclosure();
+  const [changelogOpened, { open: openChangelog, close: closeChangelog }] =
+    useDisclosure();
   // Leaving getInitialValueInEffect at its default `true` — otherwise a hydration
   // mismatch (the server doesn't know about localStorage), see the explanation next to
   // primaryColor in theme-provider.tsx.
@@ -116,10 +120,16 @@ export function NavShell({
             />
             <IconReceipt2 size={24} color="var(--mantine-primary-color-6)" />
             <Title order={4}>Výkazy a faktury</Title>
-            <Tooltip label="Verze aplikace" position="bottom" withArrow>
-              <Text size="xs" c="dimmed" visibleFrom="xs">
-                v{appVersion}
-              </Text>
+            <Tooltip label="Historie verzí" position="bottom" withArrow>
+              <UnstyledButton
+                onClick={openChangelog}
+                visibleFrom="xs"
+                style={{ borderRadius: "var(--mantine-radius-sm)" }}
+              >
+                <Text size="xs" c="dimmed">
+                  v{appVersion}
+                </Text>
+              </UnstyledButton>
             </Tooltip>
           </Group>
           <Group gap="sm">
@@ -169,6 +179,11 @@ export function NavShell({
       </AppShell.Navbar>
 
       <AppShell.Main>{children}</AppShell.Main>
+      <ChangelogModal
+        opened={changelogOpened}
+        onClose={closeChangelog}
+        currentVersion={appVersion}
+      />
     </AppShell>
   );
 }
