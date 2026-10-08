@@ -1,5 +1,12 @@
 # reports-and-invoices
 
+## 1.2.1
+
+### Patch Changes
+
+- Uložení výkazu (Ctrl/Cmd+S i tlačítkem) už nepřesouvá kurzor na konec dokumentu a nepřepíše text napsaný mezi uložením a jeho dokončením.
+- Tabulka „Přehled“ u výkazu i tlačítka nad ní se na užších obrazovkách posouvají do strany, takže tlačítka nemizí z dohledu ani se nezalamují.
+
 ## 1.2.0
 
 ### Minor Changes
