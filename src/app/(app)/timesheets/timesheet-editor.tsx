@@ -772,179 +772,202 @@ export function TimesheetEditor({
             </Title>
             {liveResult ? (
               <Stack gap="sm">
-                <Group justify="flex-end">
-                  <Button
-                    size="xs"
-                    variant="light"
-                    leftSection={<IconListDetails size={14} />}
-                    disabled={liveResult.timesheets.length === 0}
-                    onClick={() => setTasksOpened(true)}
+                {/* Same as the table below — scroll sideways instead of wrapping. */}
+                <ScrollArea type="never" scrollbars="x">
+                  {/* max-content: otherwise the Group is only as wide as the viewport
+                      and the buttons shrink/truncate instead of overflowing. */}
+                  <Group
+                    justify="flex-end"
+                    wrap="nowrap"
+                    w="max-content"
+                    miw="100%"
                   >
-                    Úkoly
-                  </Button>
-                  {isOwner && (
                     <Button
-                      component={Link}
-                      href={`/invoices/new?year=${period.slice(0, 4)}&month=${Number(period.slice(4, 6))}${
-                        selectedAliases.size > 0
-                          ? `&alias=${[...selectedAliases][0]}`
-                          : ""
-                      }`}
                       size="xs"
                       variant="light"
-                      leftSection={<IconFileInvoice size={14} />}
+                      leftSection={<IconListDetails size={14} />}
+                      disabled={liveResult.timesheets.length === 0}
+                      onClick={() => setTasksOpened(true)}
                     >
-                      Fakturovat{" "}
-                      {selectedAliases.size > 0
-                        ? `(${selectedAliases.size})`
-                        : "všem"}
+                      Úkoly
                     </Button>
-                  )}
-                  <Tooltip
-                    label="Ulož výkaz, ať je náhled aktuální"
-                    disabled={!dirty}
-                  >
-                    <Button
-                      size="xs"
-                      variant="light"
-                      leftSection={<IconFileTypePdf size={14} />}
-                      disabled={dirty || liveResult.timesheets.length === 0}
-                      onClick={() =>
-                        openPreview(
+                    {isOwner && (
+                      <Button
+                        component={Link}
+                        href={`/invoices/new?year=${period.slice(0, 4)}&month=${Number(period.slice(4, 6))}${
                           selectedAliases.size > 0
-                            ? [...selectedAliases]
-                            : liveResult.timesheets.map((t) => t.name),
-                          "pdf",
-                        )
-                      }
+                            ? `&alias=${[...selectedAliases][0]}`
+                            : ""
+                        }`}
+                        size="xs"
+                        variant="light"
+                        leftSection={<IconFileInvoice size={14} />}
+                      >
+                        Fakturovat{" "}
+                        {selectedAliases.size > 0
+                          ? `(${selectedAliases.size})`
+                          : "všem"}
+                      </Button>
+                    )}
+                    <Tooltip
+                      label="Ulož výkaz, ať je náhled aktuální"
+                      disabled={!dirty}
                     >
-                      PDF{" "}
-                      {selectedAliases.size > 0
-                        ? `(${selectedAliases.size})`
-                        : "(všech)"}
-                    </Button>
-                  </Tooltip>
-                </Group>
-                <Table>
-                  <Table.Thead>
-                    <Table.Tr>
-                      <Table.Th>
-                        <Checkbox
-                          size="xs"
-                          checked={
-                            liveResult.timesheets.length > 0 &&
-                            liveResult.timesheets.every((t) =>
-                              selectedAliases.has(t.name),
-                            )
-                          }
-                          indeterminate={
-                            liveResult.timesheets.some((t) =>
-                              selectedAliases.has(t.name),
-                            ) &&
-                            !liveResult.timesheets.every((t) =>
-                              selectedAliases.has(t.name),
-                            )
-                          }
-                          onChange={() =>
-                            setSelectedAliases((prev) => {
-                              const allSelected = liveResult.timesheets.every(
-                                (t) => prev.has(t.name),
-                              );
-                              return allSelected
-                                ? new Set()
-                                : new Set(
-                                    liveResult.timesheets.map((t) => t.name),
-                                  );
-                            })
-                          }
-                        />
-                      </Table.Th>
-                      <Table.Th>Odběratel</Table.Th>
-                      <Table.Th>Hodiny</Table.Th>
-                      <Table.Th>Sazba</Table.Th>
-                      <Table.Th>Celkem</Table.Th>
-                      <Table.Th />
-                    </Table.Tr>
-                  </Table.Thead>
-                  <Table.Tbody>
-                    {liveResult.timesheets.map((t) => {
-                      const rate = rateByAlias.get(t.name) ?? 0;
-                      const total = round2(t.hours * rate);
-                      const previewTitle = dirty
-                        ? "Ulož výkaz, ať je náhled aktuální"
-                        : undefined;
-                      return (
-                        <Table.Tr key={t.name}>
-                          <Table.Td>
-                            <Checkbox
-                              size="xs"
-                              checked={selectedAliases.has(t.name)}
-                              onChange={() => toggleAliasSelected(t.name)}
-                            />
-                          </Table.Td>
-                          <Table.Td>{t.name}</Table.Td>
-                          <Table.Td>{t.hours.toFixed(2)}</Table.Td>
-                          <Table.Td>
-                            {rate ? `${rate.toLocaleString("cs-CZ")} Kč` : "—"}
-                          </Table.Td>
-                          <Table.Td>
-                            {total.toLocaleString("cs-CZ")} Kč
-                          </Table.Td>
-                          <Table.Td>
-                            <Group gap={4} wrap="nowrap">
-                              <Tooltip label={previewTitle ?? `HTML — ${t.name}`}>
-                                <ActionIcon
-                                  disabled={dirty}
-                                  onClick={() => openPreview([t.name], "html")}
+                      <Button
+                        size="xs"
+                        variant="light"
+                        leftSection={<IconFileTypePdf size={14} />}
+                        disabled={dirty || liveResult.timesheets.length === 0}
+                        onClick={() =>
+                          openPreview(
+                            selectedAliases.size > 0
+                              ? [...selectedAliases]
+                              : liveResult.timesheets.map((t) => t.name),
+                            "pdf",
+                          )
+                        }
+                      >
+                        PDF{" "}
+                        {selectedAliases.size > 0
+                          ? `(${selectedAliases.size})`
+                          : "(všech)"}
+                      </Button>
+                    </Tooltip>
+                  </Group>
+                </ScrollArea>
+                {/* The column is narrow (md: 3) — rather than squeezing the row's action
+                    icons out of view, the table scrolls sideways (without visible
+                    scrollbars, same as in the task summary modal). */}
+                <ScrollArea type="never" scrollbars="x">
+                  <Table style={{ whiteSpace: "nowrap" }}>
+                    <Table.Thead>
+                      <Table.Tr>
+                        <Table.Th>
+                          <Checkbox
+                            size="xs"
+                            checked={
+                              liveResult.timesheets.length > 0 &&
+                              liveResult.timesheets.every((t) =>
+                                selectedAliases.has(t.name),
+                              )
+                            }
+                            indeterminate={
+                              liveResult.timesheets.some((t) =>
+                                selectedAliases.has(t.name),
+                              ) &&
+                              !liveResult.timesheets.every((t) =>
+                                selectedAliases.has(t.name),
+                              )
+                            }
+                            onChange={() =>
+                              setSelectedAliases((prev) => {
+                                const allSelected = liveResult.timesheets.every(
+                                  (t) => prev.has(t.name),
+                                );
+                                return allSelected
+                                  ? new Set()
+                                  : new Set(
+                                      liveResult.timesheets.map((t) => t.name),
+                                    );
+                              })
+                            }
+                          />
+                        </Table.Th>
+                        <Table.Th>Odběratel</Table.Th>
+                        <Table.Th>Hodiny</Table.Th>
+                        <Table.Th>Sazba</Table.Th>
+                        <Table.Th>Celkem</Table.Th>
+                        <Table.Th />
+                      </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>
+                      {liveResult.timesheets.map((t) => {
+                        const rate = rateByAlias.get(t.name) ?? 0;
+                        const total = round2(t.hours * rate);
+                        const previewTitle = dirty
+                          ? "Ulož výkaz, ať je náhled aktuální"
+                          : undefined;
+                        return (
+                          <Table.Tr key={t.name}>
+                            <Table.Td>
+                              <Checkbox
+                                size="xs"
+                                checked={selectedAliases.has(t.name)}
+                                onChange={() => toggleAliasSelected(t.name)}
+                              />
+                            </Table.Td>
+                            <Table.Td>{t.name}</Table.Td>
+                            <Table.Td>{t.hours.toFixed(2)}</Table.Td>
+                            <Table.Td>
+                              {rate
+                                ? `${rate.toLocaleString("cs-CZ")} Kč`
+                                : "—"}
+                            </Table.Td>
+                            <Table.Td>
+                              {total.toLocaleString("cs-CZ")} Kč
+                            </Table.Td>
+                            <Table.Td>
+                              <Group gap={4} wrap="nowrap">
+                                <Tooltip
+                                  label={previewTitle ?? `HTML — ${t.name}`}
                                 >
-                                  <IconFileTypeHtml size={16} />
-                                </ActionIcon>
-                              </Tooltip>
-                              <Tooltip label={previewTitle ?? `PDF — ${t.name}`}>
-                                <ActionIcon
-                                  disabled={dirty}
-                                  onClick={() => openPreview([t.name], "pdf")}
-                                >
-                                  <IconFileTypePdf size={16} />
-                                </ActionIcon>
-                              </Tooltip>
-                              {isOwner && (
-                                <Tooltip label={`Fakturovat — ${t.name}`}>
                                   <ActionIcon
-                                    component={Link}
-                                    href={`/invoices/new?year=${period.slice(0, 4)}&month=${Number(period.slice(4, 6))}&alias=${t.name}`}
+                                    disabled={dirty}
+                                    onClick={() =>
+                                      openPreview([t.name], "html")
+                                    }
                                   >
-                                    <IconFileInvoice size={16} />
+                                    <IconFileTypeHtml size={16} />
                                   </ActionIcon>
                                 </Tooltip>
-                              )}
-                            </Group>
-                          </Table.Td>
-                        </Table.Tr>
-                      );
-                    })}
-                  </Table.Tbody>
-                  <Table.Tfoot>
-                    <Table.Tr
-                      style={{
-                        borderTop:
-                          "2px solid var(--mantine-color-default-border)",
-                      }}
-                    >
-                      <Table.Th colSpan={4}>Celkem</Table.Th>
-                      <Table.Th colSpan={2}>
-                        {round2(
-                          liveResult.timesheets.reduce(
-                            (sum, t) =>
-                              sum + t.hours * (rateByAlias.get(t.name) ?? 0),
-                            0,
-                          ),
-                        ).toLocaleString("cs-CZ")}{" "}
-                        Kč
-                      </Table.Th>
-                    </Table.Tr>
-                  </Table.Tfoot>
-                </Table>
+                                <Tooltip
+                                  label={previewTitle ?? `PDF — ${t.name}`}
+                                >
+                                  <ActionIcon
+                                    disabled={dirty}
+                                    onClick={() => openPreview([t.name], "pdf")}
+                                  >
+                                    <IconFileTypePdf size={16} />
+                                  </ActionIcon>
+                                </Tooltip>
+                                {isOwner && (
+                                  <Tooltip label={`Fakturovat — ${t.name}`}>
+                                    <ActionIcon
+                                      component={Link}
+                                      href={`/invoices/new?year=${period.slice(0, 4)}&month=${Number(period.slice(4, 6))}&alias=${t.name}`}
+                                    >
+                                      <IconFileInvoice size={16} />
+                                    </ActionIcon>
+                                  </Tooltip>
+                                )}
+                              </Group>
+                            </Table.Td>
+                          </Table.Tr>
+                        );
+                      })}
+                    </Table.Tbody>
+                    <Table.Tfoot>
+                      <Table.Tr
+                        style={{
+                          borderTop:
+                            "2px solid var(--mantine-color-default-border)",
+                        }}
+                      >
+                        <Table.Th colSpan={4}>Celkem</Table.Th>
+                        <Table.Th colSpan={2}>
+                          {round2(
+                            liveResult.timesheets.reduce(
+                              (sum, t) =>
+                                sum + t.hours * (rateByAlias.get(t.name) ?? 0),
+                              0,
+                            ),
+                          ).toLocaleString("cs-CZ")}{" "}
+                          Kč
+                        </Table.Th>
+                      </Table.Tr>
+                    </Table.Tfoot>
+                  </Table>
+                </ScrollArea>
                 {liveResult.timesheets.some((t) => t.overtime.length > 0) && (
                   <div>
                     <Text size="sm" fw={500} mb={4}>
