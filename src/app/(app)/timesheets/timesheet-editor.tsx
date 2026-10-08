@@ -258,10 +258,16 @@ export function TimesheetEditor({
   const savingRef = useRef(saveMutation);
   const periodRef = useRef(period);
   const readDataRef = useRef(readQuery.data);
+  const dirtyRef = useRef(dirty);
+  // Which timesheet (`userId/period`) is currently loaded in the editor — lets the
+  // load effect below tell switching to another timesheet apart from a mere refetch
+  // of the same one (after save, on window focus).
+  const loadedKeyRef = useRef<string | null>(null);
   useEffect(() => {
     savingRef.current = saveMutation;
     periodRef.current = period;
     readDataRef.current = readQuery.data;
+    dirtyRef.current = dirty;
   });
 
   // The editor gets recreated when switching users ("on whose behalf") or keybindings —
@@ -308,7 +314,9 @@ export function TimesheetEditor({
       parent: editorRef.current,
     });
     viewRef.current = view;
+    loadedKeyRef.current = null;
     if (readDataRef.current) {
+      loadedKeyRef.current = `${userId}/${periodRef.current}`;
       const content = readDataRef.current.content;
       view.dispatch({
         changes: { from: 0, to: 0, insert: content },
@@ -342,6 +350,24 @@ export function TimesheetEditor({
     if (!readQuery.data || !viewRef.current) return;
     const view = viewRef.current;
     const content = readQuery.data.content;
+    const key = `${userId}/${period}`;
+    // A refetch of the already loaded timesheet (typically right after saving) must
+    // not move the cursor to the end or overwrite what the user has typed since —
+    // only an unedited editor gets updated, keeping the cursor where it was.
+    if (loadedKeyRef.current === key) {
+      if (dirtyRef.current || view.state.doc.toString() === content) return;
+      view.dispatch({
+        changes: { from: 0, to: view.state.doc.length, insert: content },
+        selection: EditorSelection.cursor(
+          Math.min(view.state.selection.main.head, content.length),
+        ),
+        annotations: Transaction.addToHistory.of(false),
+      });
+      setDirty(false);
+      setLiveResult(readQuery.data.parsed);
+      return;
+    }
+    loadedKeyRef.current = key;
     view.dispatch({
       changes: { from: 0, to: view.state.doc.length, insert: content },
       selection: EditorSelection.cursor(content.length),
@@ -352,7 +378,7 @@ export function TimesheetEditor({
     });
     setDirty(false);
     setLiveResult(readQuery.data.parsed);
-  }, [readQuery.data]);
+  }, [readQuery.data, userId, period]);
 
   const periodsByYear = groupByYear(periodsQuery.data ?? []);
   const years = Object.keys(periodsByYear).sort(
