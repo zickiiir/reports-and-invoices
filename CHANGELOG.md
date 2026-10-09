@@ -1,5 +1,11 @@
 # reports-and-invoices
 
+## 1.2.3
+
+### Patch Changes
+
+- Název PDF faktury nově vždy začíná velkým písmenem (např. `Faktura-202608.pdf`); podpis na faktuře je dvakrát větší a QR kód o čtvrtinu větší.
+
 ## 1.2.2
 
 ### Patch Changes
