@@ -1,5 +1,11 @@
 # reports-and-invoices
 
+## 1.2.4
+
+### Patch Changes
+
+- Forma úhrady na faktuře nově uvádí „Bankovním převodem“ místo „Převodem“.
+
 ## 1.2.3
 
 ### Patch Changes
