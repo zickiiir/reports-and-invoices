@@ -214,7 +214,7 @@ export function renderInvoiceHtml(data: InvoicePdfData): string {
     <div><div class="label">Datum vystavení</div><div class="value">${formatDate(data.issueDate)}</div></div>
     <div><div class="label">Datum splatnosti</div><div class="value">${formatDate(data.dueDate)}</div></div>
     <div><div class="label">Datum uskut. plnění</div><div class="value">${formatDate(data.performanceDate)}</div></div>
-    <div><div class="label">Forma úhrady</div><div class="value">Převodem</div></div>
+    <div><div class="label">Forma úhrady</div><div class="value">Bankovním převodem</div></div>
     ${data.variableSymbol ? `<div><div class="label">Variabilní symbol</div><div class="value">${escapeHtml(data.variableSymbol)}</div></div>` : ""}
     ${data.constantSymbol ? `<div><div class="label">Konstantní symbol</div><div class="value">${escapeHtml(data.constantSymbol)}</div></div>` : ""}
   </div>
