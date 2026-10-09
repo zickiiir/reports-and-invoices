@@ -102,7 +102,7 @@ export async function GET(
   return new NextResponse(new Uint8Array(pdf), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="faktura-${invoice.number}.pdf"`,
+      "Content-Disposition": `inline; filename="Faktura-${invoice.number}.pdf"`,
     },
   });
 }

@@ -172,10 +172,10 @@ export function renderInvoiceHtml(data: InvoicePdfData): string {
     padding-top: 16px;
   }
   .footer .bank div { margin-bottom: 2px; }
-  .signature img { height: 48px; }
+  .signature img { height: 96px; }
   .note { margin-top: 16px; font-size: 11px; color: #666; }
   .qr { text-align: center; margin-left: 24px; }
-  .qr img { width: 100px; height: 100px; display: block; }
+  .qr img { width: 125px; height: 125px; display: block; }
   .qr .label { font-size: 9px; color: #666; margin-top: 2px; }
 </style>
 </head>

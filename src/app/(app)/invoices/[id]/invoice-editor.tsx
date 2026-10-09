@@ -118,7 +118,7 @@ export function InvoiceEditor({ invoice }: { invoice: Invoice }) {
     setPreview({
       title: `Faktura ${invoice.number}`,
       url: `/api/invoices/${invoice.id}/pdf`,
-      filename: `faktura-${invoice.number}.pdf`,
+      filename: `Faktura-${invoice.number}.pdf`,
     });
   };
 
