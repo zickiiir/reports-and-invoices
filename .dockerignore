@@ -7,3 +7,6 @@ data
 .env.production
 .env*.local
 smoke-test*.mjs
+.pnpm-store
+pdf-examples
+perl-app
