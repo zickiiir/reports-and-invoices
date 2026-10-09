@@ -125,7 +125,20 @@ export function renderInvoiceHtml(data: InvoicePdfData): string {
   }
   .meta .label { color: #666; font-size: 10px; text-transform: uppercase; }
   .meta .value { font-weight: 600; }
-  table.items { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  /* Fixed layout + explicit column widths (colgroup) so the numeric columns stay
+     aligned regardless of item name length or amount size — with auto layout the
+     browser re-distributes widths by content and the columns "drift". */
+  table.items {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+  }
+  table.items col.qty { width: 11%; }
+  table.items col.price { width: 13%; }
+  table.items col.discount { width: 11%; }
+  table.items col.vat { width: 7%; }
+  table.items col.total { width: 16%; }
   table.items th {
     text-align: left;
     font-size: 10px;
@@ -133,10 +146,15 @@ export function renderInvoiceHtml(data: InvoicePdfData): string {
     color: #666;
     border-bottom: 1px solid #1a1a1a;
     padding: 6px 4px;
+    vertical-align: bottom;
   }
-  table.items td { padding: 8px 4px; border-bottom: 1px solid #e5e5e5; }
-  table.items td.num { text-align: right; }
-  table.items td.desc { max-width: 260px; }
+  table.items td { padding: 8px 4px; border-bottom: 1px solid #e5e5e5; vertical-align: top; }
+  table.items .num {
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  table.items td.desc { overflow-wrap: anywhere; padding-right: 12px; }
   table.items td.total { font-weight: 600; }
   .sum {
     display: flex;
@@ -202,6 +220,14 @@ export function renderInvoiceHtml(data: InvoicePdfData): string {
   </div>
 
   <table class="items">
+    <colgroup>
+      <col class="desc" />
+      <col class="qty" />
+      <col class="price" />
+      <col class="discount" />
+      <col class="vat" />
+      <col class="total" />
+    </colgroup>
     <thead>
       <tr>
         <th>Popis</th>

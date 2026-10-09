@@ -1,5 +1,11 @@
 # reports-and-invoices
 
+## 1.2.2
+
+### Patch Changes
+
+- Fix misaligned columns in the invoice PDF — long item names now wrap and numeric columns keep a fixed width
+
 ## 1.2.1
 
 ### Patch Changes
