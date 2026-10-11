@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1.0",
+  "vaultPath": "vault/wiki",
+  "scratchPath": "vault/scratches",
+  "language": "cs",
+  "taxonomy": {
+    "folders": {
+      "domains": true,
+      "concepts": true,
+      "entities": true,
+      "decisions": true,
+      "analysis": true,
+      "designs": true,
+      "sources": true,
+      "reference": true,
+      "integrations": true,
+      "operations": true,
+      "lessons": true,
+      "issues": true
+    }
+  },
+  "domains": {
+    "timesheet": "Výkazy práce: parser, ukládání na disk, editor, import",
+    "invoicing": "Faktury, číslování, plátci a zákazníci, PDF šablona, QR platba",
+    "nextcloud": "Nextcloud WebDAV sync, SSRF guard, šifrování hesla",
+    "access": "Autentizace, role, viditelnost dat, rate limiting, bezpečnostní invarianty",
+    "platform": "Stack, Docker/deploy, release, env, UI konvence, DB schéma, glosář"
+  }
+}

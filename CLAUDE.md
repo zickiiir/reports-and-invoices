@@ -149,3 +149,15 @@ defaulty tam, kde dává smysl fungovat bez explicitního nastavení (viz `DATA_
 `CHANGELOG.md` řeší Changesets (`pnpm changeset`, `pnpm changeset:version`) — viz README
 "Verze a changelog". K netriviální změně přidej changeset (`pnpm changeset`), pokud o to
 uživatel výslovně nepožádá jinak.
+
+## Wiki Vault (REQUIRED)
+
+Project knowledge lives in `vault/wiki/`, managed by the `hv-wiki` plugin. Query it before reading
+source files: `/wiki-lookup`, or the `wiki` skill. Store discoveries there, not in the global memory
+system — the wiki compounds across sessions, memory does not.
+
+Taxonomy, frontmatter and retention rules: the plugin's `schema.md`. What this project configures:
+`.claude/wiki.config.json`. Health check: `/wiki-doctor`.
+
+Throwaway working files go to `vault/scratches/` (gitignored) — never `/tmp`, the harness scratchpad,
+or a loose file in the repo root.

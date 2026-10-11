@@ -1,0 +1,20 @@
+{
+  "enabledPlugins": {
+    "hv-essentials@hv-plugins": true,
+    "hv-wiki@hv-plugins": true
+  },
+  "extraKnownMarketplaces": {
+    "hv-plugins": {
+      "source": {
+        "source": "git",
+        "url": "https://gitlab.hvx.cz/hvtronix/environment/hv-plugins.git"
+      }
+    }
+  },
+  "permissions": {
+    "allow": [
+      "Write(//Users/blaha/Projects/t3/reports-and-invoices/vault/wiki/**)",
+      "Edit(//Users/blaha/Projects/t3/reports-and-invoices/vault/wiki/**)"
+    ]
+  }
+}
