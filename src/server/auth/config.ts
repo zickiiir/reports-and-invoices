@@ -52,6 +52,11 @@ const credentialsSchema = z.object({
   password: z.string().min(1),
 });
 
+/** Cookies are shared across ports on `localhost`, so sibling projects on the same stack
+ * would overwrite each other's default `authjs.*` session. A project-specific prefix keeps
+ * them apart. `force-logout` relies on this prefix. */
+export const COOKIE_PREFIX = "reports-and-invoices";
+
 /**
  * Options for NextAuth.js. Credentials-only (email + password, hash in the DB), JWT
  * session — no DB adapter or next-auth tables.
@@ -60,6 +65,11 @@ const credentialsSchema = z.object({
  */
 export const authConfig = {
   session: { strategy: "jwt" },
+  cookies: {
+    sessionToken: { name: `${COOKIE_PREFIX}.session-token` },
+    callbackUrl: { name: `${COOKIE_PREFIX}.callback-url` },
+    csrfToken: { name: `${COOKIE_PREFIX}.csrf-token` },
+  },
   pages: { signIn: "/login" },
   providers: [
     Credentials({

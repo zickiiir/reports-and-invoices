@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
+import { COOKIE_PREFIX } from "~/server/auth/config";
+
 /**
  * Session cookie points to a valid JWT, but the user no longer exists in the DB
  * (deleted account, or a dev/database reset) — `(app)/layout.tsx` redirects here
@@ -10,7 +12,7 @@ import { NextResponse } from "next/server";
 export async function GET(req: Request) {
   const store = await cookies();
   for (const c of store.getAll()) {
-    if (c.name.includes("authjs") || c.name.includes("next-auth")) {
+    if (c.name.includes(COOKIE_PREFIX)) {
       store.delete(c.name);
     }
   }
