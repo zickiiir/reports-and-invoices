@@ -11,3 +11,6 @@ Documented timesheet, invoicing, nextcloud, access and a new cross-cutting domai
 
 ## [2026-10-11] issue | known defects filed from initial documentation
 Zapsáno 16 stránek do `issues/` (zjištění z čtení kódu, neověřená); odkazy z landing stránek domén. Řešení odloženo.
+
+## [2026-11-05] update | timesheet report export and workload weeks
+Report route: každý výkaz v hromadném PDF začíná na nové stránce, přibyl `format=zip` s HTML výkazy. Odpracovanost: týden bez pracovního dne a bez zapsané práce se vynechává. Upraveny `timesheet-parser`, `timesheet-editor-and-import`, `timesheet-workload-and-task-summaries`.

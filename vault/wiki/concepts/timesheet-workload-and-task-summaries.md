@@ -28,7 +28,7 @@ Vstup `WorkloadSettings` pochází z nastavení uživatele ([[access-users-and-r
 
 - **Fond měsíce**: počet pracovních dnů × `hoursPerWorkday` (`maxTargetHours`).
 - **Osobní cíl**: `monthlyHoursGoal`, jinak maximum. Denní tempo je `effectiveDailyRate = goalHours / pracovní dny měsíce`. Bez cíle se rovná `hoursPerWorkday`.
-- **Týdny**: týden pondělí–neděle, první a poslední ořezané na hranice měsíce. `startDate`/`endDate` ukazují první a poslední skutečný pracovní den týdne. `notStarted` je pravda, když týden dnes ještě nezačal.
+- **Týdny**: týden pondělí–neděle, první a poslední ořezané na hranice měsíce. `startDate`/`endDate` ukazují první a poslední skutečný pracovní den týdne. `notStarted` je pravda, když týden dnes ještě nezačal. Týden bez pracovního dne a bez zapsané práce (např. neděle 1. 11. 2026) se vynechává.
 - **`buildProgress`**: cíl k dnešku = uplynulé pracovní dny × denní tempo. `actualHours` počítá všechny záznamy v kalendářním rozsahu (včetně víkendů). `diffHours = actualHours - targetHours` (záporné = pozadu).
 - `today` musí ležet v měsíci, pro který je výkaz naparsovaný.
 

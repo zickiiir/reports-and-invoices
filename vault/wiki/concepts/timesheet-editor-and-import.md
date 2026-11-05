@@ -49,7 +49,7 @@ Konflikty řeší [[nextcloud-sync-conflict-handling]].
 ### Náhled a stažení
 
 - Tlačítka HTML/PDF jsou aktivní jen bez neuložených změn (`dirty`), protože route čte uložený soubor. `openPreview` otevře `ReportPreviewModal` s iframe na `/api/timesheets/report?userId&period&alias&format`.
-- `src/app/api/timesheets/report/route.ts::GET` ověří přihlášení a `assertCanReadTimesheet`, vyparsuje uložený text, pro vybrané aliasy složí `renderTimesheetBody` (v PDF s `page-break-after`) a pro `format=pdf` volá `renderHtmlToPdf` ([[invoicing-pdf-rendering]]). Odpověď je `inline`. Chyby: 401, 400, 403, 404 (alias bez záznamů).
+- `src/app/api/timesheets/report/route.ts::GET` ověří přihlášení a `assertCanReadTimesheet`, vyparsuje uložený text, pro vybrané aliasy složí `renderTimesheetBody` (každý výkaz na nové stránce) a pro `format=pdf` volá `renderHtmlToPdf` ([[invoicing-pdf-rendering]]). Odpověď je `inline`. `format=zip` vrací jako přílohu `Vykazy_HTML_{YYYYMM}.zip` se samostatným `.htm` pro každý alias (tlačítko „HTML ZIP"; znaky aliasu mimo písmena, číslice, `_` a `-` se v názvu souboru nahrazují `_`). Chyby: 401, 400, 403, 404 (alias bez záznamů).
 - Stahování surových souborů: `src/app/api/timesheets/download/route.ts::GET`. Jedno období vrací `prace{YYYYMM}.txt` (`text/plain`), víc období ZIP (`jszip`) `vykazy_{první}-{poslední}.zip`. Kontroluje přihlášení, formát období a `assertCanReadTimesheet`.
 - `ReportPreviewModal` stahuje přes `fetch` + blob, aby šlo `inline` hlavičku použít pro iframe.
 - Odkazy „Fakturovat" vedou na `/invoices/new?year&month&alias` (jen vlastní výkaz, viz [[invoicing]]).

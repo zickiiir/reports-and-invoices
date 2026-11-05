@@ -30,6 +30,7 @@ import {
   Popover,
   ScrollArea,
   Select,
+  SimpleGrid,
   Stack,
   Table,
   Text,
@@ -461,6 +462,16 @@ export function TimesheetEditor({
     });
   };
 
+  const handleHtmlZipDownload = (aliases: string[]) => {
+    const params = new URLSearchParams({
+      userId,
+      period,
+      alias: aliases.join(","),
+      format: "zip",
+    });
+    window.open(`/api/timesheets/report?${params.toString()}`, "_blank");
+  };
+
   const openPreview = (aliases: string[], kind: "pdf" | "html") => {
     if (aliases.length === 0) return;
     const filenameBase =
@@ -772,69 +783,88 @@ export function TimesheetEditor({
             </Title>
             {liveResult ? (
               <Stack gap="sm">
-                {/* Same as the table below — scroll sideways instead of wrapping. */}
-                <ScrollArea type="never" scrollbars="x">
-                  {/* max-content: otherwise the Group is only as wide as the viewport
-                      and the buttons shrink/truncate instead of overflowing. */}
-                  <Group
-                    justify="flex-end"
-                    wrap="nowrap"
-                    w="max-content"
-                    miw="100%"
+                <SimpleGrid cols={2} spacing="xs" verticalSpacing="xs">
+                  <Button
+                    size="xs"
+                    variant="light"
+                    leftSection={<IconListDetails size={14} />}
+                    fullWidth
+                    // Without the owner-only invoice button the row would stay half empty.
+                    style={isOwner ? undefined : { gridColumn: "1 / -1" }}
+                    disabled={liveResult.timesheets.length === 0}
+                    onClick={() => setTasksOpened(true)}
+                  >
+                    Úkoly
+                  </Button>
+                  {isOwner && (
+                    <Button
+                      component={Link}
+                      fullWidth
+                      href={`/invoices/new?year=${period.slice(0, 4)}&month=${Number(period.slice(4, 6))}${
+                        selectedAliases.size > 0
+                          ? `&alias=${[...selectedAliases][0]}`
+                          : ""
+                      }`}
+                      size="xs"
+                      variant="light"
+                      leftSection={<IconFileInvoice size={14} />}
+                    >
+                      Fakturovat{" "}
+                      {selectedAliases.size > 0
+                        ? `(${selectedAliases.size})`
+                        : "všem"}
+                    </Button>
+                  )}
+                  <Tooltip
+                    label="Ulož výkaz, ať je export aktuální"
+                    disabled={!dirty}
                   >
                     <Button
                       size="xs"
                       variant="light"
-                      leftSection={<IconListDetails size={14} />}
-                      disabled={liveResult.timesheets.length === 0}
-                      onClick={() => setTasksOpened(true)}
-                    >
-                      Úkoly
-                    </Button>
-                    {isOwner && (
-                      <Button
-                        component={Link}
-                        href={`/invoices/new?year=${period.slice(0, 4)}&month=${Number(period.slice(4, 6))}${
+                      fullWidth
+                      leftSection={<IconFileTypeHtml size={14} />}
+                      disabled={dirty || liveResult.timesheets.length === 0}
+                      onClick={() =>
+                        handleHtmlZipDownload(
                           selectedAliases.size > 0
-                            ? `&alias=${[...selectedAliases][0]}`
-                            : ""
-                        }`}
-                        size="xs"
-                        variant="light"
-                        leftSection={<IconFileInvoice size={14} />}
-                      >
-                        Fakturovat{" "}
-                        {selectedAliases.size > 0
-                          ? `(${selectedAliases.size})`
-                          : "všem"}
-                      </Button>
-                    )}
-                    <Tooltip
-                      label="Ulož výkaz, ať je náhled aktuální"
-                      disabled={!dirty}
+                            ? [...selectedAliases]
+                            : liveResult.timesheets.map((t) => t.name),
+                        )
+                      }
                     >
-                      <Button
-                        size="xs"
-                        variant="light"
-                        leftSection={<IconFileTypePdf size={14} />}
-                        disabled={dirty || liveResult.timesheets.length === 0}
-                        onClick={() =>
-                          openPreview(
-                            selectedAliases.size > 0
-                              ? [...selectedAliases]
-                              : liveResult.timesheets.map((t) => t.name),
-                            "pdf",
-                          )
-                        }
-                      >
-                        PDF{" "}
-                        {selectedAliases.size > 0
-                          ? `(${selectedAliases.size})`
-                          : "(všech)"}
-                      </Button>
-                    </Tooltip>
-                  </Group>
-                </ScrollArea>
+                      HTML ZIP{" "}
+                      {selectedAliases.size > 0
+                        ? `(${selectedAliases.size})`
+                        : "(všech)"}
+                    </Button>
+                  </Tooltip>
+                  <Tooltip
+                    label="Ulož výkaz, ať je náhled aktuální"
+                    disabled={!dirty}
+                  >
+                    <Button
+                      size="xs"
+                      variant="light"
+                      fullWidth
+                      leftSection={<IconFileTypePdf size={14} />}
+                      disabled={dirty || liveResult.timesheets.length === 0}
+                      onClick={() =>
+                        openPreview(
+                          selectedAliases.size > 0
+                            ? [...selectedAliases]
+                            : liveResult.timesheets.map((t) => t.name),
+                          "pdf",
+                        )
+                      }
+                    >
+                      PDF{" "}
+                      {selectedAliases.size > 0
+                        ? `(${selectedAliases.size})`
+                        : "(všech)"}
+                    </Button>
+                  </Tooltip>
+                </SimpleGrid>
                 {/* The column is narrow (md: 3) — rather than squeezing the row's action
                     icons out of view, the table scrolls sideways (without visible
                     scrollbars, same as in the task summary modal). */}

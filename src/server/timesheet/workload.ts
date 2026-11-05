@@ -159,20 +159,28 @@ export function computeWorkloadStats(
     const workStart = firstWorkday(weekStart, weekEnd, settings.workdays) ?? weekStart;
     const workEnd = lastWorkday(weekStart, weekEnd, settings.workdays) ?? weekEnd;
 
-    weeks.push({
-      ...buildProgress(
-        weekStart,
-        weekEnd,
-        today,
-        settings.workdays,
-        effectiveDailyRate,
-        settings.hoursPerWorkday,
-        perPerson,
-      ),
-      startDate: workStart.format("YYYY-MM-DD"),
-      endDate: workEnd.format("YYYY-MM-DD"),
-      notStarted: today.isBefore(workStart, "day"),
-    });
+    // A month starting or ending on non-working days leaves a stub "week" with nothing
+    // to fulfil (e.g. Sunday 11/1/2026) — it only belongs here when work was logged in it.
+    const isEmptyStub =
+      countWorkdays(weekStart, weekEnd, settings.workdays) === 0 &&
+      hoursInRange(perPerson, weekStart, weekEnd) === 0;
+
+    if (!isEmptyStub) {
+      weeks.push({
+        ...buildProgress(
+          weekStart,
+          weekEnd,
+          today,
+          settings.workdays,
+          effectiveDailyRate,
+          settings.hoursPerWorkday,
+          perPerson,
+        ),
+        startDate: workStart.format("YYYY-MM-DD"),
+        endDate: workEnd.format("YYYY-MM-DD"),
+        notStarted: today.isBefore(workStart, "day"),
+      });
+    }
 
     cursor = naturalEnd.add(1, "day");
   }

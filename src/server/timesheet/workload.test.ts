@@ -127,4 +127,29 @@ describe("computeWorkloadStats", () => {
     expect(stats.month.actualHours).toBe(2);
     expect(stats.weeks[0]!.actualHours).toBe(2);
   });
+
+  describe("a month starting on a weekend (November 2026 starts on Sunday 11/1)", () => {
+    const november = dayjs("2026-11-05");
+
+    it("leaves out the weekend-only stub when no work is logged in it", () => {
+      const stats = computeWorkloadStats(november, MON_FRI, []);
+      expect(stats.weeks[0]!.startDate).toBe("2026-11-02");
+      expect(stats.weeks[0]!.endDate).toBe("2026-11-06");
+    });
+
+    it("keeps the stub when work is explicitly logged in it", () => {
+      const perPerson = [person("KM", [{ date: "2026-11-01", minutes: 2 * 60 }])];
+      const stats = computeWorkloadStats(november, MON_FRI, perPerson);
+      expect(stats.weeks[0]!.startDate).toBe("2026-11-01");
+      expect(stats.weeks[0]!.endDate).toBe("2026-11-01");
+      expect(stats.weeks[0]!.actualHours).toBe(2);
+      expect(stats.weeks[0]!.totalWorkdaysInPeriod).toBe(0);
+    });
+
+    it("the month's totals don't depend on the stub being shown", () => {
+      const stats = computeWorkloadStats(november, MON_FRI, []);
+      expect(stats.month.totalWorkdaysInPeriod).toBe(21);
+      expect(stats.month.elapsedWorkdays).toBe(4);
+    });
+  });
 });

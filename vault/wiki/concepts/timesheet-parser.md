@@ -54,7 +54,7 @@ Záporný rozdíl časů se bere jako přechod přes půlnoc a přičte se 24 ho
 
 - `formatHoursColon(minutes)` dává formát `H:MM` (shodný s `hodin()` v Perlu).
 - `renderTimesheetBody(person, period)` vyrobí `<h1>` a tabulku (Datum, Popis, Hodiny) a řádek se součtem. Řádky jsou seřazeny podle data a `idx`.
-- `renderTimesheetHtml` zabalí tělo do `<html>` s UTF-8 meta tagem. Report route skládá víc těl za sebe s `page-break-after`.
+- `renderTimesheetHtml` zabalí tělo do `<html>` s UTF-8 meta tagem. Report route obalí každé tělo do bloku s `display: flow-root` (tabulka je plovoucí přes `align="left"`, bez toho by další výkaz tekl vedle ní) a od druhého výkazu přidá `break-before: page`.
 
 ## Implementation
 
