@@ -1,5 +1,16 @@
 # reports-and-invoices
 
+## 1.3.0
+
+### Minor Changes
+
+- Hromadné PDF výkazů začíná každého odběratele na nové stránce; přibylo hromadné stažení HTML výkazů v ZIPu; víkend na začátku měsíce se v Pracovním nasazení nezobrazuje jako splněný týden, pokud v něm není zapsaná práce.
+
+### Patch Changes
+
+- Přihlášení má vlastní názvy cookies, takže se aplikace na `localhost` už nepřepisují se sousedními aplikacemi. Po aktualizaci je potřeba se jednou znovu přihlásit.
+- Aktualizace knihoven kvůli bezpečnostním zranitelnostem (Next.js, Auth.js, Drizzle ORM, WebDAV klient a jejich závislosti).
+
 ## 1.2.4
 
 ### Patch Changes
