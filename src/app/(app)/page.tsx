@@ -1,10 +1,16 @@
 import dayjs from "dayjs";
 import { Card, SimpleGrid, Stack, Text, Title } from "@mantine/core";
 
+import { computeFlatTaxLimitStats } from "~/server/invoicing/flat-tax-limit";
 import { computeWorkloadStats } from "~/server/timesheet/workload";
 import { api } from "~/trpc/server";
 
-import { CurrentTimesheetCard, RecentInvoicesCard, WorkloadCard } from "./dashboard-cards";
+import {
+  CurrentTimesheetCard,
+  FlatTaxLimitCard,
+  RecentInvoicesCard,
+  WorkloadCard,
+} from "./dashboard-cards";
 
 export default async function DashboardPage() {
   const period = dayjs().format("YYYYMM");
@@ -28,11 +34,15 @@ export default async function DashboardPage() {
     currentTimesheet.parsed.perPerson,
   );
 
+  const flatTaxStats = computeFlatTaxLimitStats(invoices, dayjs());
+
   return (
     <Stack gap="lg">
       <Title order={2}>Přehled</Title>
 
       <WorkloadCard stats={workloadStats} />
+
+      <FlatTaxLimitCard stats={flatTaxStats} />
 
       <SimpleGrid cols={{ base: 1, sm: 3 }}>
         <Card withBorder padding="lg">

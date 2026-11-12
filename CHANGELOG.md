@@ -1,5 +1,11 @@
 # reports-and-invoices
 
+## 1.4.0
+
+### Minor Changes
+
+- Přehled nově ukazuje, do kterého pásma paušální daně spadají letošní příjmy z faktur, kolik je vyčerpáno a kolik zbývá do konce pásma.
+
 ## 1.3.0
 
 ### Minor Changes
