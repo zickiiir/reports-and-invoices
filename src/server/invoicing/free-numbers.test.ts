@@ -49,8 +49,22 @@ describe("suggestFreeSequence", () => {
 
   it("suggests the next number when no later period is numbered", () => {
     const upToNovember = YEAR_2026.filter((i) => i.sourceMonth! <= 11);
-    expect(suggestFreeSequence("2026", 13, upToNovember, { year: 2026, month: 11 })).toBeNull();
-    expect(suggestFreeSequence("2026", 13, upToNovember, { year: 2026, month: 12 })).toBeNull();
+    expect(suggestFreeSequence("2026", 11, upToNovember, { year: 2026, month: 11 })).toBeNull();
+    expect(suggestFreeSequence("2026", 11, upToNovember, { year: 2026, month: 12 })).toBeNull();
+  });
+
+  it("suggests a gap right above the last used number when moving forward", () => {
+    // 01–13 used up to November, 14 was reserved by a draft that got deleted.
+    const invoices: NumberedInvoice[] = Array.from({ length: 13 }, (_, i) => ({
+      number: formatInvoiceNumber("2026", i + 1),
+      sourceYear: 2026,
+      sourceMonth: Math.min(i + 1, 11),
+    }));
+    expect(suggestFreeSequence("2026", 14, invoices, { year: 2026, month: 11 })).toBe(14);
+  });
+
+  it("never suggests gaps of a counter set by hand without invoices in the series", () => {
+    expect(suggestFreeSequence("2026", 5, [], { year: 2026, month: 6 })).toBeNull();
   });
 
   it("suggests the next number when the only gap belongs to an older period", () => {

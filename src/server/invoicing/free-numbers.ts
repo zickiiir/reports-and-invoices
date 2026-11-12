@@ -53,9 +53,15 @@ function sequenceOf(period: string, number: string): number | null {
  * Invoices already numbered for a later timesheet period mean we're going back in
  * time: the new invoice belongs between the last number used for a period up to the
  * target one and the first number used for a later period, so the smallest gap in
- * that window is suggested (January when 02–13 are taken → 01). With no later
- * invoices we're moving forward and the next number fits — even if there are gaps,
- * those belong to older periods. Invoices without a source period don't take part.
+ * that window is suggested (January when 02–13 are taken → 01).
+ *
+ * With no later invoices we're moving forward. Gaps below the last used number belong
+ * to older periods, but a gap ABOVE it (the last draft was deleted while a later
+ * number had already been reserved) is the natural continuation and is suggested.
+ * That needs at least one invoice in the series: a counter set by hand in settings
+ * (switching from another system mid-year) leaves 01–NN "free" here although the old
+ * system used them, and those must never be suggested. Invoices without a source
+ * period don't take part.
  */
 export function suggestFreeSequence(
   period: string,
@@ -74,7 +80,7 @@ export function suggestFreeSequence(
     if (key > targetKey) upper = Math.min(upper, seq);
     else lower = Math.max(lower, seq);
   }
-  if (upper === Number.POSITIVE_INFINITY) return null;
+  if (upper === Number.POSITIVE_INFINITY && lower === 0) return null;
 
   const free = freeSequences(
     period,

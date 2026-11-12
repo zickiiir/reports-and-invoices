@@ -21,6 +21,7 @@ import { applyLineItemTemplate } from "~/server/invoicing/line-item";
 import {
   getNumberingState,
   numberingPeriodKey,
+  releaseInvoiceNumber,
   reserveInvoiceNumber,
   setInvoiceNumberSequence,
 } from "~/server/invoicing/numbering";
@@ -434,7 +435,26 @@ export const invoiceRouter = createTRPCRouter({
           message: "Smazat lze jen fakturu ve stavu koncept.",
         });
       }
-      await ctx.db.delete(invoices).where(eq(invoices.id, input.id));
+      const owner = await ctx.db.query.users.findFirst({
+        where: eq(users.id, existing.userId),
+        columns: { invoiceNumberingScope: true },
+      });
+
+      await ctx.db.transaction(async (tx) => {
+        await tx.delete(invoices).where(eq(invoices.id, input.id));
+        // Deleting the newest draft gives its number back, so the next invoice doesn't
+        // skip it. Drafts without a source period can't be mapped to a series.
+        if (owner && existing.sourceYear !== null && existing.sourceMonth !== null) {
+          await releaseInvoiceNumber(
+            tx,
+            existing.userId,
+            owner.invoiceNumberingScope,
+            existing.sourceYear,
+            existing.sourceMonth,
+            existing.number,
+          );
+        }
+      });
       return { ok: true };
     }),
 });

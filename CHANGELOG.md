@@ -1,5 +1,11 @@
 # reports-and-invoices
 
+## 1.6.1
+
+### Patch Changes
+
+- Smazání posledního konceptu faktury vrátí číselnou řadu zpět, takže další faktura jeho číslo nepřeskočí; volné číslo hned nad posledním použitým se při zakládání faktury rovnou předvybere.
+
 ## 1.6.0
 
 ### Minor Changes

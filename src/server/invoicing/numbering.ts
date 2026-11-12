@@ -10,6 +10,7 @@ import {
 import { formatInvoiceNumber, freeSequences, suggestFreeSequence } from "./free-numbers";
 
 type DbOrTx = typeof dbType;
+type Tx = Parameters<Parameters<DbOrTx["transaction"]>[0]>[0];
 
 /**
  * The numbering sequence key stored in `invoiceNumberCounters.period` — for "per
@@ -129,4 +130,38 @@ export async function getNumberingState(
       return seq === null ? null : formatInvoiceNumber(period, seq);
     })(),
   };
+}
+
+/**
+ * Undoes the reservation of a deleted invoice's number — but only when it is still
+ * the last number of its series (`lastSequence` = its sequence), checked atomically in
+ * the UPDATE. A number below the top stays a gap (offered as a free number when
+ * creating an invoice). Only one step back, never further down to the highest number
+ * still in use: a counter set by hand in settings may cover numbers the app doesn't
+ * know about (another system used them).
+ */
+export async function releaseInvoiceNumber(
+  db: DbOrTx | Tx,
+  userId: string,
+  scope: InvoiceNumberingScope,
+  year: number,
+  month: number,
+  number: string,
+): Promise<void> {
+  const period = numberingPeriodKey(scope, year, month);
+  if (!number.startsWith(period)) return;
+  const suffix = number.slice(period.length);
+  if (!/^\d{2,}$/.test(suffix)) return;
+  const sequence = Number(suffix);
+
+  await db
+    .update(invoiceNumberCounters)
+    .set({ lastSequence: sequence - 1 })
+    .where(
+      and(
+        eq(invoiceNumberCounters.userId, userId),
+        eq(invoiceNumberCounters.period, period),
+        eq(invoiceNumberCounters.lastSequence, sequence),
+      ),
+    );
 }
