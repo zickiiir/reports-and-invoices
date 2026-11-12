@@ -1,7 +1,13 @@
-import { sql } from "drizzle-orm";
+import { and, eq, like, sql } from "drizzle-orm";
 
 import { type db as dbType } from "~/server/db";
-import { invoiceNumberCounters, type InvoiceNumberingScope } from "~/server/db/schema";
+import {
+  invoiceNumberCounters,
+  invoices,
+  type InvoiceNumberingScope,
+} from "~/server/db/schema";
+
+import { formatInvoiceNumber, freeSequences, suggestFreeSequence } from "./free-numbers";
 
 type DbOrTx = typeof dbType;
 
@@ -67,4 +73,60 @@ export async function setInvoiceNumberSequence(
       target: [invoiceNumberCounters.userId, invoiceNumberCounters.period],
       set: { lastSequence },
     });
+}
+
+/**
+ * The numbering state for a period: the next number in the series and the free
+ * numbers below it. Read-only — nothing is reserved. Free numbers never collide with
+ * `reserveInvoiceNumber`, which only hands out numbers above `lastSequence`.
+ */
+export async function getNumberingState(
+  db: DbOrTx,
+  userId: string,
+  scope: InvoiceNumberingScope,
+  year: number,
+  month: number,
+): Promise<{
+  period: string;
+  lastSequence: number;
+  next: string;
+  free: string[];
+  /** A free number that fits the target period chronologically; null = `next`. */
+  suggested: string | null;
+}> {
+  const period = numberingPeriodKey(scope, year, month);
+  const counter = await db.query.invoiceNumberCounters.findFirst({
+    where: and(
+      eq(invoiceNumberCounters.userId, userId),
+      eq(invoiceNumberCounters.period, period),
+    ),
+  });
+  const lastSequence = counter?.lastSequence ?? 0;
+
+  const existing =
+    lastSequence > 0
+      ? await db
+          .select({
+            number: invoices.number,
+            sourceYear: invoices.sourceYear,
+            sourceMonth: invoices.sourceMonth,
+          })
+          .from(invoices)
+          .where(and(eq(invoices.userId, userId), like(invoices.number, `${period}%`)))
+      : [];
+
+  return {
+    period,
+    lastSequence,
+    next: formatInvoiceNumber(period, lastSequence + 1),
+    free: freeSequences(
+      period,
+      lastSequence,
+      existing.map((e) => e.number),
+    ).map((seq) => formatInvoiceNumber(period, seq)),
+    suggested: (() => {
+      const seq = suggestFreeSequence(period, lastSequence, existing, { year, month });
+      return seq === null ? null : formatInvoiceNumber(period, seq);
+    })(),
+  };
 }

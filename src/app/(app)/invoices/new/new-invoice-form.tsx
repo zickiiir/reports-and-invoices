@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
+import { useState } from "react";
 import { Button, Card, Group, Select, Text, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
@@ -57,6 +58,17 @@ export function NewInvoiceForm({
     { enabled: !!form.values.payerId },
   );
 
+  // The user's explicit pick ("" = next in the series), remembered only for the
+  // payer/period it was made for — changing them goes back to the server's suggestion,
+  // which knows whether the period is a step back in time (→ a gap) or forward (→ next).
+  const previewKey = `${form.values.payerId}:${form.values.sourceYear}:${form.values.sourceMonth}`;
+  const [choice, setChoice] = useState<{ key: string; value: string } | null>(null);
+  const freeNumbers = numberPreview.data?.free ?? [];
+  const suggested = numberPreview.data?.suggested ?? null;
+  const picked = choice?.key === previewKey ? choice.value : (suggested ?? "");
+  const selectedFree = picked && freeNumbers.includes(picked) ? picked : null;
+  const effectiveNumber = selectedFree ?? numberPreview.data?.next;
+
   const createDraft = api.invoice.createDraft.useMutation({
     onSuccess: (invoice) => {
       if (!invoice) return;
@@ -79,6 +91,7 @@ export function NewInvoiceForm({
             sourceYear: values.sourceYear,
             sourceMonth: values.sourceMonth,
             constantSymbol: values.constantSymbol || undefined,
+            number: selectedFree ?? undefined,
           }),
         )}
       >
@@ -108,14 +121,33 @@ export function NewInvoiceForm({
           />
         </Group>
         <Group grow mb="sm">
-          <TextInput
-            label="Číslo faktury (náhled)"
-            value={numberPreview.data ?? "…"}
-            disabled
-          />
+          {freeNumbers.length > 0 && numberPreview.data ? (
+            <Select
+              label="Číslo faktury"
+              searchable={false}
+              allowDeselect={false}
+              data={[
+                { value: "", label: `${numberPreview.data.next} — další v řadě` },
+                ...freeNumbers.map((n) => ({
+                  value: n,
+                  label: `${n} — volné číslo v řadě${n === suggested ? " (sedí k období)" : ""}`,
+                })),
+              ]}
+              value={selectedFree ?? ""}
+              onChange={(v) => setChoice({ key: previewKey, value: v ?? "" })}
+              description="Volná čísla jsou díry v řadě, např. pro fakturu ke staršímu výkazu"
+              inputWrapperOrder={["label", "input", "description"]}
+            />
+          ) : (
+            <TextInput
+              label="Číslo faktury (náhled)"
+              value={numberPreview.data?.next ?? "…"}
+              disabled
+            />
+          )}
           <TextInput
             label="Variabilní symbol"
-            value={numberPreview.data ?? ""}
+            value={effectiveNumber ?? ""}
             disabled
             description="= číslo faktury, lze změnit v detailu konceptu"
             inputWrapperOrder={["label", "input", "description"]}

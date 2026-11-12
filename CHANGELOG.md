@@ -1,5 +1,11 @@
 # reports-and-invoices
 
+## 1.6.0
+
+### Minor Changes
+
+- Při zakládání faktury appka nabídne i volná čísla v číselné řadě; u faktury ke staršímu výkazu sama předvybere číslo, které k období sedí, jinak pokračuje dalším číslem v řadě.
+
 ## 1.5.0
 
 ### Minor Changes

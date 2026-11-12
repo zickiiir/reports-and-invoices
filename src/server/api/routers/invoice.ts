@@ -19,6 +19,7 @@ import {
 } from "~/server/invoicing/dates";
 import { applyLineItemTemplate } from "~/server/invoicing/line-item";
 import {
+  getNumberingState,
   numberingPeriodKey,
   reserveInvoiceNumber,
   setInvoiceNumberSequence,
@@ -37,6 +38,14 @@ const itemInput = z.object({
 /** `YYYY-MM-DD` — a malformed or empty string would otherwise reach Postgres and fail
  * the whole save with an "invalid input syntax for type date" error. */
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+/** Postgres `unique_violation`, possibly wrapped by drizzle in `cause`. */
+function isUniqueViolation(err: unknown): boolean {
+  for (let e: unknown = err; e && typeof e === "object"; e = (e as { cause?: unknown }).cause) {
+    if ((e as { code?: unknown }).code === "23505") return true;
+  }
+  return false;
+}
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const itemTotal = (i: z.infer<typeof itemInput>) =>
@@ -78,7 +87,11 @@ export const invoiceRouter = createTRPCRouter({
       return invoice;
     }),
 
-  /** Preview of the next invoice number for a payer/period, without reserving it (read-only). */
+  /**
+   * The next invoice number for a payer/period plus the free numbers below it (gaps in
+   * the series — e.g. an invoice for an older timesheet entered after later ones). Read
+   * only, nothing is reserved.
+   */
   previewNumber: protectedProcedure
     .input(
       z.object({
@@ -98,16 +111,14 @@ export const invoiceRouter = createTRPCRouter({
         where: eq(users.id, payer.userId),
         columns: { invoiceNumberingScope: true },
       });
-      const scope = owner?.invoiceNumberingScope ?? "month";
-      const period = numberingPeriodKey(scope, input.sourceYear, input.sourceMonth);
-      const counter = await ctx.db.query.invoiceNumberCounters.findFirst({
-        where: and(
-          eq(invoiceNumberCounters.userId, payer.userId),
-          eq(invoiceNumberCounters.period, period),
-        ),
-      });
-      const sequence = (counter?.lastSequence ?? 0) + 1;
-      return `${period}${String(sequence).padStart(2, "0")}`;
+      const state = await getNumberingState(
+        ctx.db,
+        payer.userId,
+        owner?.invoiceNumberingScope ?? "month",
+        input.sourceYear,
+        input.sourceMonth,
+      );
+      return { next: state.next, free: state.free, suggested: state.suggested };
     }),
 
   /** The logged-in user's numbering sequence state for a given period (settings). */
@@ -186,6 +197,8 @@ export const invoiceRouter = createTRPCRouter({
         variableSymbol: z.string().optional(),
         constantSymbol: z.string().optional(),
         note: z.string().optional(),
+        /** A free number from `previewNumber.free`; omitted = the next one in the series. */
+        number: z.string().max(20).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -239,13 +252,33 @@ export const invoiceRouter = createTRPCRouter({
       }
 
       const total = round2(items.reduce((sum, i) => sum + itemTotal(i), 0));
-      const number = await reserveInvoiceNumber(
-        ctx.db,
-        payer.userId,
-        owner.invoiceNumberingScope,
-        input.sourceYear,
-        input.sourceMonth,
-      );
+      let number: string;
+      if (input.number) {
+        // Only a gap in the series, recomputed here — never an arbitrary number from the
+        // client, and the counter stays untouched (the gap is below it).
+        const state = await getNumberingState(
+          ctx.db,
+          payer.userId,
+          owner.invoiceNumberingScope,
+          input.sourceYear,
+          input.sourceMonth,
+        );
+        if (!state.free.includes(input.number)) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: `Číslo ${input.number} už v řadě není volné.`,
+          });
+        }
+        number = input.number;
+      } else {
+        number = await reserveInvoiceNumber(
+          ctx.db,
+          payer.userId,
+          owner.invoiceNumberingScope,
+          input.sourceYear,
+          input.sourceMonth,
+        );
+      }
 
       const [invoice] = await ctx.db
         .insert(invoices)
@@ -268,7 +301,18 @@ export const invoiceRouter = createTRPCRouter({
           totalAmount: String(total),
           note: input.note,
         })
-        .returning();
+        .returning()
+        .catch((err: unknown) => {
+          // Two drafts racing for the same free number — the unique (userId, number)
+          // constraint lets only one through.
+          if (isUniqueViolation(err)) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: `Číslo ${number} mezitím obsadila jiná faktura.`,
+            });
+          }
+          throw err;
+        });
       if (!invoice) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
       await ctx.db.insert(invoiceItems).values(
