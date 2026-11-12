@@ -35,17 +35,17 @@ Versioning is handled by Changesets (see README "Verze a changelog"). The versio
    - Text in Czech, one or two sentences, user-visible effect (not files or functions).
      It ends up in `CHANGELOG.md` and in the release history modal in the UI.
 
-4. **Commit the change itself first**, separately from the release. Stage only the source
-   changes (`git add src ...`, not the version files), conventional prefix (`fix:`,
-   `feat:`, `chore:` ...).
-
-5. **Run `pnpm changeset:version`.** It bumps `package.json`, updates `CHANGELOG.md` and
+4. **Run `pnpm changeset:version`.** It bumps `package.json`, updates `CHANGELOG.md` and
    consumes the changeset files. Check the resulting version with `git diff package.json`.
 
-6. **Commit the release**: `chore: release X.Y.Z`, containing `package.json`,
-   `CHANGELOG.md` and the removed changesets.
+5. **Commit the change and the version bump together, in ONE commit** — never split
+   them into a feature commit and a separate `chore: release` commit. Stage the source
+   changes plus `package.json`, `CHANGELOG.md` and the consumed changesets (name the
+   paths, don't `git add -A`). Conventional prefix for the change itself (`fix:`,
+   `feat:` ...); say in the body that it is released as X.Y.Z. If the tree holds only
+   changesets and no source change, the subject is `chore: release X.Y.Z`.
 
-7. **Push** (`git push`). Report the new version and the two commit hashes.
+6. **Push** (`git push`). Report the new version and the commit hash.
 
 ## Commit message rules
 

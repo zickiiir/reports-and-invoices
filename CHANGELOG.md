@@ -1,5 +1,17 @@
 # reports-and-invoices
 
+## 1.5.0
+
+### Minor Changes
+
+- Stav faktury jde změnit přímo v seznamu faktur, bez otevírání detailu.
+
+### Patch Changes
+
+- Na detailu faktury jde znovu měnit datum splatnosti i ostatní data, nově přes kalendář s českým formátem; seznam faktur je ve výchozím stavu seřazený podle čísla faktury.
+  Fakturu na detailu jde uložit i zkratkou Ctrl/Cmd+S.
+  Období v seznamu faktur se vypisuje i s rokem (např. „prosinec 2025“).
+
 ## 1.4.0
 
 ### Minor Changes

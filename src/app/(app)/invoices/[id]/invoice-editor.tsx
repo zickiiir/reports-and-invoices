@@ -3,6 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
+// `dayjs/locale/cs` is only imported into the server bundle in the root layout — the
+// date pickers here need it in the client bundle, otherwise they fall back to English.
+import "dayjs/locale/cs";
 import {
   ActionIcon,
   Badge,
@@ -17,6 +20,8 @@ import {
   TextInput,
   Textarea,
 } from "@mantine/core";
+import { DatePickerInput } from "@mantine/dates";
+import { useHotkeys } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { IconDownload, IconExternalLink, IconPlus, IconTrash } from "@tabler/icons-react";
 
@@ -62,9 +67,9 @@ export function InvoiceEditor({ invoice }: { invoice: Invoice }) {
   const [meta, setMeta] = useState({
     variableSymbol: invoice.variableSymbol ?? "",
     constantSymbol: invoice.constantSymbol ?? "",
-    issueDate: invoice.issueDate ?? "",
-    dueDate: invoice.dueDate ?? "",
-    performanceDate: invoice.performanceDate ?? "",
+    issueDate: invoice.issueDate,
+    dueDate: invoice.dueDate,
+    performanceDate: invoice.performanceDate,
     periodLabel: invoice.periodLabel ?? "",
     status: invoice.status,
     note: invoice.note ?? "",
@@ -144,6 +149,7 @@ export function InvoiceEditor({ invoice }: { invoice: Invoice }) {
   };
 
   const handleSave = () => {
+    if (updateMutation.isPending) return;
     updateMutation.mutate({
       id: invoice.id,
       ...meta,
@@ -151,6 +157,10 @@ export function InvoiceEditor({ invoice }: { invoice: Invoice }) {
       items,
     });
   };
+
+  // Ctrl/Cmd+S like in a text editor (same as the timesheet editor). The empty ignore
+  // list makes it fire inside inputs too — that's where the user is when they save.
+  useHotkeys([["mod+S", handleSave]], []);
 
   return (
     <>
@@ -178,7 +188,7 @@ export function InvoiceEditor({ invoice }: { invoice: Invoice }) {
             </Button>
           )}
           <Button onClick={handleSave} loading={updateMutation.isPending}>
-            Uložit
+            Uložit (Ctrl/Cmd+S)
           </Button>
         </Group>
       </Group>
@@ -237,14 +247,20 @@ export function InvoiceEditor({ invoice }: { invoice: Invoice }) {
             <TextInput
               label="Variabilní symbol"
               value={meta.variableSymbol}
-              onChange={(e) => setMeta((m) => ({ ...m, variableSymbol: e.currentTarget.value }))}
+              onChange={(e) => {
+                const value = e.currentTarget.value;
+                setMeta((m) => ({ ...m, variableSymbol: value }));
+              }}
             />
           </Grid.Col>
           <Grid.Col span={3}>
             <TextInput
               label="Konstantní symbol"
               value={meta.constantSymbol}
-              onChange={(e) => setMeta((m) => ({ ...m, constantSymbol: e.currentTarget.value }))}
+              onChange={(e) => {
+                const value = e.currentTarget.value;
+                setMeta((m) => ({ ...m, constantSymbol: value }));
+              }}
             />
           </Grid.Col>
           <Grid.Col span={3}>
@@ -267,38 +283,47 @@ export function InvoiceEditor({ invoice }: { invoice: Invoice }) {
             <TextInput
               label="Období (slovy)"
               value={meta.periodLabel}
-              onChange={(e) => setMeta((m) => ({ ...m, periodLabel: e.currentTarget.value }))}
+              onChange={(e) => {
+                const value = e.currentTarget.value;
+                setMeta((m) => ({ ...m, periodLabel: value }));
+              }}
             />
           </Grid.Col>
           <Grid.Col span={4}>
-            <TextInput
+            <DatePickerInput
               label="Datum vystavení"
-              type="date"
+              valueFormat="D. M. YYYY"
+              clearable
               value={meta.issueDate}
-              onChange={(e) => setMeta((m) => ({ ...m, issueDate: e.currentTarget.value }))}
+              onChange={(value) => setMeta((m) => ({ ...m, issueDate: value }))}
             />
           </Grid.Col>
           <Grid.Col span={4}>
-            <TextInput
+            <DatePickerInput
               label="Datum splatnosti"
-              type="date"
+              valueFormat="D. M. YYYY"
+              clearable
               value={meta.dueDate}
-              onChange={(e) => setMeta((m) => ({ ...m, dueDate: e.currentTarget.value }))}
+              onChange={(value) => setMeta((m) => ({ ...m, dueDate: value }))}
             />
           </Grid.Col>
           <Grid.Col span={4}>
-            <TextInput
+            <DatePickerInput
               label="Datum uskutečnění plnění"
-              type="date"
+              valueFormat="D. M. YYYY"
+              clearable
               value={meta.performanceDate}
-              onChange={(e) => setMeta((m) => ({ ...m, performanceDate: e.currentTarget.value }))}
+              onChange={(value) => setMeta((m) => ({ ...m, performanceDate: value }))}
             />
           </Grid.Col>
           <Grid.Col span={12}>
             <Textarea
               label="Poznámka"
               value={meta.note}
-              onChange={(e) => setMeta((m) => ({ ...m, note: e.currentTarget.value }))}
+              onChange={(e) => {
+                const value = e.currentTarget.value;
+                setMeta((m) => ({ ...m, note: value }));
+              }}
             />
           </Grid.Col>
         </Grid>

@@ -34,6 +34,10 @@ const itemInput = z.object({
   vatRate: z.number().default(0),
 });
 
+/** `YYYY-MM-DD` — a malformed or empty string would otherwise reach Postgres and fail
+ * the whole save with an "invalid input syntax for type date" error. */
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const itemTotal = (i: z.infer<typeof itemInput>) =>
   round2(i.quantity * i.unitPrice - i.discount);
@@ -292,9 +296,9 @@ export const invoiceRouter = createTRPCRouter({
         id: z.string().uuid(),
         variableSymbol: z.string().optional(),
         constantSymbol: z.string().optional(),
-        issueDate: z.string().optional(),
-        dueDate: z.string().optional(),
-        performanceDate: z.string().optional(),
+        issueDate: isoDate.nullable().optional(),
+        dueDate: isoDate.nullable().optional(),
+        performanceDate: isoDate.nullable().optional(),
         periodLabel: z.string().optional(),
         status: z.enum(invoiceStatusEnum.enumValues).optional(),
         note: z.string().optional(),
@@ -347,6 +351,29 @@ export const invoiceRouter = createTRPCRouter({
         where: eq(invoices.id, input.id),
         with: { payer: true, items: true },
       });
+    }),
+
+  /** Status-only change from the invoice list — `update` needs the whole invoice
+   * including items, which the list doesn't have. */
+  setStatus: protectedProcedure
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        status: z.enum(invoiceStatusEnum.enumValues),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const existing = await ctx.db.query.invoices.findFirst({
+        where: eq(invoices.id, input.id),
+      });
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND" });
+      assertOwnerOrSuperUser(ctx.session.user, existing.userId);
+
+      await ctx.db
+        .update(invoices)
+        .set({ status: input.status })
+        .where(eq(invoices.id, input.id));
+      return { ok: true };
     }),
 
   delete: protectedProcedure
