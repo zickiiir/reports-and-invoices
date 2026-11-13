@@ -5,7 +5,7 @@ domain: invoicing
 status: current
 tags: [numbering, concurrency, drizzle]
 created: 2026-10-11
-updated: 2026-10-11
+updated: 2026-11-12
 sources: [code-inspection]
 related: [invoicing, invoicing-invoices-and-items, invoicing-creation-flow]
 ---
@@ -26,19 +26,36 @@ Dvě souběžné žádosti nesmí dostat stejné číslo. Starý postup četl lo
 - Číslo = `period` + pořadí doplněné na 2 číslice, např. `20260701` (měsíční řada) nebo `202603` (roční řada, 3. faktura roku).
 - `padStart(2, "0")` nic neořezává: od 100. faktury v řadě má pořadí 3 číslice.
 
+### Volná čísla a předvýběr
+
+- Volné číslo = pořadí 1..`lastSequence`, které nemá žádná faktura uživatele s číslem tvaru `${period}NN` (`src/server/invoicing/free-numbers.ts::freeSequences`). Vzniká zpětným zadáním faktury, smazáním faktury níž v řadě nebo selháním vložení.
+- `getNumberingState` (`numbering.ts`) vrací `next`, `free` a `suggested`. `invoice.previewNumber` je posílá do formuláře nové faktury (`src/app/(app)/invoices/new/new-invoice-form.tsx`), který při existenci volných čísel ukáže výběr místo zašedlého náhledu.
+- `suggestFreeSequence` předvybírá podle chronologie období výkazu (`sourceYear`/`sourceMonth`):
+  - Existuje faktura za pozdější období → jde se zpětně, předvybere se nejmenší díra mezi posledním číslem období ≤ cílového a prvním číslem pozdějšího období (leden, když 02–13 jsou obsazené → 01).
+  - Žádné pozdější období → jde se dopředu, předvybere se jen díra nad posledním použitým číslem (smazaný koncept), jinak `next`.
+  - Bez jediné faktury v řadě se nic nepředvybírá: ručně posunutý čítač (přechod z jiného systému) by jinak nabízel čísla, která použil starý systém.
+- `createDraft` přijme volitelné `number`, ale jen pokud ho server sám znovu spočítá jako volné; čítač se nemění. Souběh o stejné volné číslo zachytí unikátní `invoice_user_number_unique` (chyba `23505` → `CONFLICT`).
+
+### Vrácení čísla při smazání
+
+- `invoice.delete` volá v jedné transakci se smazáním `releaseInvoiceNumber`: `UPDATE ... SET lastSequence = seq - 1 WHERE lastSequence = seq`. Čítač se vrátí jen tehdy, když mazaný koncept držel poslední číslo řady, a jen o jeden krok — ne až k nejvyššímu použitému číslu, ze stejného důvodu jako výše (ručně nastavený čítač).
+- Koncept bez `sourceYear`/`sourceMonth` nejde přiřadit k řadě, čítač se nemění.
+
 ## Implementation
 
-- `src/server/invoicing/numbering.ts::numberingPeriodKey`, `::reserveInvoiceNumber`, `::setInvoiceNumberSequence`.
+- `src/server/invoicing/numbering.ts::numberingPeriodKey`, `::reserveInvoiceNumber`, `::setInvoiceNumberSequence`, `::getNumberingState`, `::releaseInvoiceNumber`.
+- `src/server/invoicing/free-numbers.ts::formatInvoiceNumber`, `::freeSequences`, `::suggestFreeSequence` — čisté funkce bez importu DB, aby je vitest načetl (nemá alias `~`); testy v `free-numbers.test.ts`.
 - `src/server/db/schema.ts::invoiceNumberCounters` — unikátní `(userId, period)` je cíl `onConflictDoUpdate`, viz [[invoicing-invoices-and-items]].
 - `src/server/api/routers/invoice.ts::invoiceRouter`:
   - `createDraft` volá `reserveInvoiceNumber` s `year`/`month` období výkazu (`sourceYear`, `sourceMonth`), ne s datem vystavení.
-  - `previewNumber` a `numberSequence` jen čtou počítadlo a vrací další číslo, nic nerezervují.
+  - `previewNumber` a `numberSequence` jen čtou počítadlo, nic nerezervují. `previewNumber` vrací `{ next, free, suggested }`.
   - `setNumberSequence` ručně přepíše „poslední použité číslo“ (0–99) přes `setInvoiceNumberSequence`, určeno pro opravu v nastavení (např. přechod z jiného systému uprostřed roku).
 
 ## Trade-offs
 
-⚠️ Rezervace není v jedné transakci s vložením faktury. Pokud `insert` faktury selže po rezervaci, vznikne v řadě díra.
-⚠️ Smazání konceptu (`invoice.delete`) počítadlo nesnižuje, číslo se znovu nepoužije.
+⚠️ Rezervace není v jedné transakci s vložením faktury. Pokud `insert` faktury selže po rezervaci, vznikne v řadě díra (formulář ji pak nabídne jako volné číslo).
+⚠️ Smazání konceptu níž v řadě čítač nevrací; číslo zůstane díra, kterou formulář nabídne jako volnou.
+⚠️ Volná čísla pod ručně posunutým čítačem se nabízejí ve výběru (ne předvybraná) — mohl je použít předchozí systém.
 ⚠️ `previewNumber` je jen náhled. Mezi náhledem a `createDraft` může číslo vzít jiná žádost.
 ⚠️ Při změně `invoiceNumberingScope` zůstanou stará počítadla pod starými klíči. Kód je nemigruje.
 ⚠️ `setNumberSequence` povoluje jen 0–99, i když `reserveInvoiceNumber` umí víc.

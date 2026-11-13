@@ -14,3 +14,6 @@ Zapsáno 16 stránek do `issues/` (zjištění z čtení kódu, neověřená); o
 
 ## [2026-11-05] update | timesheet report export and workload weeks
 Report route: každý výkaz v hromadném PDF začíná na nové stránce, přibyl `format=zip` s HTML výkazy. Odpracovanost: týden bez pracovního dne a bez zapsané práce se vynechává. Upraveny `timesheet-parser`, `timesheet-editor-and-import`, `timesheet-workload-and-task-summaries`.
+
+## [2026-11-12] update | invoice numbering: free numbers and release on delete
+Číslování: volná čísla v řadě s chronologickým předvýběrem při zakládání faktury (1.6.0) a vrácení čítače při smazání posledního konceptu (1.6.1). Upraveny `invoicing-numbering` a issue `invoicing-numbering-gaps` (část vyřešena, zbytek dál otevřený).
