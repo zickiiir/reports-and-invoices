@@ -17,3 +17,6 @@ Report route: každý výkaz v hromadném PDF začíná na nové stránce, přib
 
 ## [2026-11-12] update | invoice numbering: free numbers and release on delete
 Číslování: volná čísla v řadě s chronologickým předvýběrem při zakládání faktury (1.6.0) a vrácení čítače při smazání posledního konceptu (1.6.1). Upraveny `invoicing-numbering` a issue `invoicing-numbering-gaps` (část vyřešena, zbytek dál otevřený).
+
+## [2026-11-18] decision | flat-tax income counted by due date
+Nové rozhodnutí `invoicing-flat-tax-income-by-due-date`: přehled pásma paušální daně přiřazuje fakturu do roku podle splatnosti (náhrada za datum úhrady, které appka nemá). Uživatel rozhodl logiku ponechat, napojení na bankovní API je odložené. Odkaz přidán do `invoicing`.

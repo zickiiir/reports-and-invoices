@@ -45,6 +45,7 @@ Faktury za odpracované hodiny: plátci a odběratelé (aliasy z výkazu), čís
 - [[invoicing-pdf-rendering]] — šablona, Puppeteer, XSS
 - [[invoicing-czech-qr-payment]] — SPD řetězec a QR
 - [[invoicing-payer-groups-customer-aliases]] — proč faktura vzniká za plátce
+- [[invoicing-flat-tax-income-by-due-date]] — pásmo paušální daně počítá příjem podle data splatnosti
 - [[access-security-invariants]] — bezpečnostní invarianty (escapování, SPD)
 
 ## Known Issues / Not Yet Documented
