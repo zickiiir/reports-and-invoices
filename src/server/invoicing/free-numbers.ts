@@ -35,8 +35,8 @@ export function freeSequences(
 
 export interface NumberedInvoice {
   number: string;
-  sourceYear: number | null;
-  sourceMonth: number | null;
+  /** YYYY-MM-DD; the order of issue is the order the series must follow. */
+  issueDate: string | null;
 }
 
 /** Sequence of `number` in the `period` series, or null when it isn't one of them. */
@@ -47,37 +47,36 @@ function sequenceOf(period: string, number: string): number | null {
 }
 
 /**
- * Which free sequence fits the invoice being created chronologically, or null = take
- * the next number in the series.
+ * Which free sequence fits the new invoice by its issue date, or null = take the next
+ * number in the series.
  *
- * Invoices already numbered for a later timesheet period mean we're going back in
- * time: the new invoice belongs between the last number used for a period up to the
- * target one and the first number used for a later period, so the smallest gap in
- * that window is suggested (January when 02–13 are taken → 01).
+ * Invoices already numbered with a later issue date mean we're going back in time: the
+ * new invoice belongs between the last number issued up to its date and the first
+ * number issued after it, so the smallest gap in that window is suggested. Ordering by
+ * issue date (not by timesheet month) also places invoices without a timesheet, which
+ * can share a month with a timesheet invoice.
  *
  * With no later invoices we're moving forward. Gaps below the last used number belong
- * to older periods, but a gap ABOVE it (the last draft was deleted while a later
+ * to earlier invoices, but a gap ABOVE it (the last draft was deleted while a later
  * number had already been reserved) is the natural continuation and is suggested.
  * That needs at least one invoice in the series: a counter set by hand in settings
  * (switching from another system mid-year) leaves 01–NN "free" here although the old
- * system used them, and those must never be suggested. Invoices without a source
- * period don't take part.
+ * system used them, and those must never be suggested. Invoices without an issue date
+ * don't take part.
  */
 export function suggestFreeSequence(
   period: string,
   lastSequence: number,
   invoices: NumberedInvoice[],
-  target: { year: number; month: number },
+  targetIssueDate: string,
 ): number | null {
-  const targetKey = target.year * 100 + target.month;
   let lower = 0;
   let upper = Number.POSITIVE_INFINITY;
   for (const inv of invoices) {
     const seq = sequenceOf(period, inv.number);
     if (seq === null || seq > lastSequence) continue;
-    if (inv.sourceYear === null || inv.sourceMonth === null) continue;
-    const key = inv.sourceYear * 100 + inv.sourceMonth;
-    if (key > targetKey) upper = Math.min(upper, seq);
+    if (inv.issueDate === null) continue;
+    if (inv.issueDate > targetIssueDate) upper = Math.min(upper, seq);
     else lower = Math.max(lower, seq);
   }
   if (upper === Number.POSITIVE_INFINITY && lower === 0) return null;

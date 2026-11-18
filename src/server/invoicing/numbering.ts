@@ -87,12 +87,13 @@ export async function getNumberingState(
   scope: InvoiceNumberingScope,
   year: number,
   month: number,
+  targetIssueDate: string,
 ): Promise<{
   period: string;
   lastSequence: number;
   next: string;
   free: string[];
-  /** A free number that fits the target period chronologically; null = `next`. */
+  /** A free number that fits the target issue date chronologically; null = `next`. */
   suggested: string | null;
 }> {
   const period = numberingPeriodKey(scope, year, month);
@@ -109,8 +110,7 @@ export async function getNumberingState(
       ? await db
           .select({
             number: invoices.number,
-            sourceYear: invoices.sourceYear,
-            sourceMonth: invoices.sourceMonth,
+            issueDate: invoices.issueDate,
           })
           .from(invoices)
           .where(and(eq(invoices.userId, userId), like(invoices.number, `${period}%`)))
@@ -126,7 +126,7 @@ export async function getNumberingState(
       existing.map((e) => e.number),
     ).map((seq) => formatInvoiceNumber(period, seq)),
     suggested: (() => {
-      const seq = suggestFreeSequence(period, lastSequence, existing, { year, month });
+      const seq = suggestFreeSequence(period, lastSequence, existing, targetIssueDate);
       return seq === null ? null : formatInvoiceNumber(period, seq);
     })(),
   };

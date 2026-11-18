@@ -302,6 +302,8 @@ export const invoices = createTable(
     periodLabel: d.varchar({ length: 32 }),
     sourceYear: d.integer(),
     sourceMonth: d.integer(),
+    /** false = items entered by hand; the source period then only places it in the series. */
+    fromTimesheet: d.boolean().notNull().default(true),
     status: invoiceStatusEnum().notNull().default("draft"),
     currency: d.varchar({ length: 3 }).notNull().default("CZK"),
     totalAmount: d.numeric({ precision: 12, scale: 2 }).notNull().default("0"),

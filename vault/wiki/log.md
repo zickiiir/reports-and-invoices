@@ -20,3 +20,6 @@ Report route: každý výkaz v hromadném PDF začíná na nové stránce, přib
 
 ## [2026-11-18] decision | flat-tax income counted by due date
 Nové rozhodnutí `invoicing-flat-tax-income-by-due-date`: přehled pásma paušální daně přiřazuje fakturu do roku podle splatnosti (náhrada za datum úhrady, které appka nemá). Uživatel rozhodl logiku ponechat, napojení na bankovní API je odložené. Odkaz přidán do `invoicing`.
+
+## [2026-11-18] update | invoices without a timesheet, numbering by issue date
+Faktura jde založit bez výkazu (`fromTimesheet`, číselnou řadu určí datum vystavení); předvýběr volného čísla se řídí datem vystavení místo měsíce výkazu. Opraveno pole Rok (posílalo text) a obnovení stavu v editoru po uložení. Upraveny `invoicing-numbering`, `invoicing-creation-flow`, `invoicing-invoices-and-items`.

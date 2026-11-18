@@ -1,5 +1,11 @@
 # reports-and-invoices
 
+## 1.7.0
+
+### Minor Changes
+
+- Fakturu jde založit i bez výkazu: číselnou řadu pak určí datum vystavení a volné číslo se předvybírá podle data vystavení, takže faktura bez výkazu zapadne mezi faktury z výkazů ve stejném měsíci; v editoru jde fakturu označit jako „bez výkazu“ a seznam ji tak i ukazuje. Ruční změna roku při zakládání faktury už nerozbije náhled čísla ani vytvoření konceptu a po uložení změny stavu se hned upraví odznak stavu a tlačítko pro smazání.
+
 ## 1.6.1
 
 ### Patch Changes

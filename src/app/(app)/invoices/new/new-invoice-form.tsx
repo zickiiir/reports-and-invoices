@@ -3,7 +3,19 @@
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import { useState } from "react";
-import { Button, Card, Group, Select, Text, TextInput } from "@mantine/core";
+// The date picker needs the Czech locale in the client bundle too, see invoice-editor.tsx.
+import "dayjs/locale/cs";
+import {
+  Button,
+  Card,
+  Checkbox,
+  Group,
+  NumberInput,
+  Select,
+  Text,
+  TextInput,
+} from "@mantine/core";
+import { DatePickerInput } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { useQueryStates, parseAsInteger, parseAsString } from "nuqs";
@@ -45,23 +57,26 @@ export function NewInvoiceForm({
       payerId: defaultPayerId,
       sourceYear: year,
       sourceMonth: month,
+      fromTimesheet: true,
+      issueDate: dayjs().format("YYYY-MM-DD"),
       constantSymbol: "",
     },
   });
 
+  const { fromTimesheet, sourceYear, sourceMonth, issueDate } = form.values;
+  const source = fromTimesheet
+    ? { fromTimesheet: true as const, sourceYear, sourceMonth }
+    : { fromTimesheet: false as const, issueDate };
+
   const numberPreview = api.invoice.previewNumber.useQuery(
-    {
-      payerId: form.values.payerId,
-      sourceYear: form.values.sourceYear,
-      sourceMonth: form.values.sourceMonth,
-    },
+    { payerId: form.values.payerId, source },
     { enabled: !!form.values.payerId },
   );
 
   // The user's explicit pick ("" = next in the series), remembered only for the
   // payer/period it was made for — changing them goes back to the server's suggestion,
   // which knows whether the period is a step back in time (→ a gap) or forward (→ next).
-  const previewKey = `${form.values.payerId}:${form.values.sourceYear}:${form.values.sourceMonth}`;
+  const previewKey = `${form.values.payerId}:${JSON.stringify(source)}`;
   const [choice, setChoice] = useState<{ key: string; value: string } | null>(null);
   const freeNumbers = numberPreview.data?.free ?? [];
   const suggested = numberPreview.data?.suggested ?? null;
@@ -88,8 +103,7 @@ export function NewInvoiceForm({
         onSubmit={form.onSubmit((values) =>
           createDraft.mutate({
             payerId: values.payerId,
-            sourceYear: values.sourceYear,
-            sourceMonth: values.sourceMonth,
+            source,
             constantSymbol: values.constantSymbol || undefined,
             number: selectedFree ?? undefined,
           }),
@@ -102,24 +116,43 @@ export function NewInvoiceForm({
           data={payers.map((p) => ({ value: p.id, label: p.companyName }))}
           {...form.getInputProps("payerId")}
         />
-        {aliasesForSelectedPayer.length > 0 && (
+        {fromTimesheet && aliasesForSelectedPayer.length > 0 && (
           <Text size="xs" c="dimmed" mb="sm">
             Zahrne výkazy: {aliasesForSelectedPayer.join(", ")}
           </Text>
         )}
-        <Group grow mb="sm">
-          <Select
-            label="Měsíc plnění"
-            data={MONTHS}
-            value={String(form.values.sourceMonth)}
-            onChange={(v) => v && form.setFieldValue("sourceMonth", Number(v))}
+        <Checkbox
+          label="Bez výkazu"
+          description="Položky vyplníš ručně, číselnou řadu určí datum vystavení"
+          mb="sm"
+          checked={!fromTimesheet}
+          onChange={(e) => form.setFieldValue("fromTimesheet", !e.currentTarget.checked)}
+        />
+        {fromTimesheet ? (
+          <Group grow mb="sm">
+            <Select
+              label="Měsíc plnění"
+              data={MONTHS}
+              value={String(sourceMonth)}
+              onChange={(v) => v && form.setFieldValue("sourceMonth", Number(v))}
+            />
+            <NumberInput
+              label="Rok"
+              allowDecimal={false}
+              allowNegative={false}
+              value={sourceYear}
+              onChange={(v) => typeof v === "number" && form.setFieldValue("sourceYear", v)}
+            />
+          </Group>
+        ) : (
+          <DatePickerInput
+            label="Datum vystavení"
+            valueFormat="D. M. YYYY"
+            mb="sm"
+            value={issueDate}
+            onChange={(v) => v && form.setFieldValue("issueDate", v)}
           />
-          <TextInput
-            label="Rok"
-            type="number"
-            {...form.getInputProps("sourceYear")}
-          />
-        </Group>
+        )}
         <Group grow mb="sm">
           {freeNumbers.length > 0 && numberPreview.data ? (
             <Select

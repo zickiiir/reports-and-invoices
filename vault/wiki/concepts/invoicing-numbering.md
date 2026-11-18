@@ -5,7 +5,7 @@ domain: invoicing
 status: current
 tags: [numbering, concurrency, drizzle]
 created: 2026-10-11
-updated: 2026-11-12
+updated: 2026-11-18
 sources: [code-inspection]
 related: [invoicing, invoicing-invoices-and-items, invoicing-creation-flow]
 ---
@@ -30,16 +30,20 @@ Dvě souběžné žádosti nesmí dostat stejné číslo. Starý postup četl lo
 
 - Volné číslo = pořadí 1..`lastSequence`, které nemá žádná faktura uživatele s číslem tvaru `${period}NN` (`src/server/invoicing/free-numbers.ts::freeSequences`). Vzniká zpětným zadáním faktury, smazáním faktury níž v řadě nebo selháním vložení.
 - `getNumberingState` (`numbering.ts`) vrací `next`, `free` a `suggested`. `invoice.previewNumber` je posílá do formuláře nové faktury (`src/app/(app)/invoices/new/new-invoice-form.tsx`), který při existenci volných čísel ukáže výběr místo zašedlého náhledu.
-- `suggestFreeSequence` předvybírá podle chronologie období výkazu (`sourceYear`/`sourceMonth`):
-  - Existuje faktura za pozdější období → jde se zpětně, předvybere se nejmenší díra mezi posledním číslem období ≤ cílového a prvním číslem pozdějšího období (leden, když 02–13 jsou obsazené → 01).
-  - Žádné pozdější období → jde se dopředu, předvybere se jen díra nad posledním použitým číslem (smazaný koncept), jinak `next`.
+- `suggestFreeSequence` předvybírá podle data vystavení (`issueDate`), ne podle měsíce výkazu. Pořadí v řadě má odpovídat pořadí vystavení a faktura bez výkazu může sdílet měsíc s fakturou z výkazu:
+  - Existuje faktura vystavená později → jde se zpětně, předvybere se nejmenší díra mezi posledním číslem vystaveným do cílového data a prvním číslem vystaveným po něm (leden, když 02–13 jsou obsazené → 01).
+  - Příklad 2025: `202503` vystavena 31. 3., `202505` za dubnový výkaz 30. 4., volná `202504` → faktura bez výkazu s datem 15. 4. dostane `202504`.
+  - Faktura vystavená ve stejný den se řadí za existující.
+  - Žádná faktura vystavená později → jde se dopředu, předvybere se jen díra nad posledním použitým číslem (smazaný koncept), jinak `next`.
+  - Faktury bez `issueDate` se do porovnání nepočítají.
   - Bez jediné faktury v řadě se nic nepředvybírá: ručně posunutý čítač (přechod z jiného systému) by jinak nabízel čísla, která použil starý systém.
 - `createDraft` přijme volitelné `number`, ale jen pokud ho server sám znovu spočítá jako volné; čítač se nemění. Souběh o stejné volné číslo zachytí unikátní `invoice_user_number_unique` (chyba `23505` → `CONFLICT`).
 
 ### Vrácení čísla při smazání
 
 - `invoice.delete` volá v jedné transakci se smazáním `releaseInvoiceNumber`: `UPDATE ... SET lastSequence = seq - 1 WHERE lastSequence = seq`. Čítač se vrátí jen tehdy, když mazaný koncept držel poslední číslo řady, a jen o jeden krok — ne až k nejvyššímu použitému číslu, ze stejného důvodu jako výše (ručně nastavený čítač).
-- Koncept bez `sourceYear`/`sourceMonth` nejde přiřadit k řadě, čítač se nemění.
+- Koncept bez `sourceYear`/`sourceMonth` nejde přiřadit k řadě, čítač se nemění. Faktura bez výkazu má `sourceYear`/`sourceMonth` z data vystavení, takže se vrací stejně.
+- Předvýběr si nic neukládá, vždy se počítá z faktur, které v DB jsou. Smazání tak nemá co rozbít.
 
 ## Implementation
 
@@ -47,8 +51,8 @@ Dvě souběžné žádosti nesmí dostat stejné číslo. Starý postup četl lo
 - `src/server/invoicing/free-numbers.ts::formatInvoiceNumber`, `::freeSequences`, `::suggestFreeSequence` — čisté funkce bez importu DB, aby je vitest načetl (nemá alias `~`); testy v `free-numbers.test.ts`.
 - `src/server/db/schema.ts::invoiceNumberCounters` — unikátní `(userId, period)` je cíl `onConflictDoUpdate`, viz [[invoicing-invoices-and-items]].
 - `src/server/api/routers/invoice.ts::invoiceRouter`:
-  - `createDraft` volá `reserveInvoiceNumber` s `year`/`month` období výkazu (`sourceYear`, `sourceMonth`), ne s datem vystavení.
-  - `previewNumber` a `numberSequence` jen čtou počítadlo, nic nerezervují. `previewNumber` vrací `{ next, free, suggested }`.
+  - `createDraft` a `previewNumber` berou `source`: buď `{ fromTimesheet: true, sourceYear, sourceMonth }`, nebo `{ fromTimesheet: false, issueDate }`. `resolveDraftSource` z něj odvodí rok a měsíc řady a data faktury. U výkazu řadu určuje období výkazu, bez výkazu datum vystavení.
+  - `previewNumber` a `numberSequence` jen čtou počítadlo, nic nerezervují. `previewNumber` vrací `{ next, free, suggested, issueDate }`.
   - `setNumberSequence` ručně přepíše „poslední použité číslo“ (0–99) přes `setInvoiceNumberSequence`, určeno pro opravu v nastavení (např. přechod z jiného systému uprostřed roku).
 
 ## Trade-offs

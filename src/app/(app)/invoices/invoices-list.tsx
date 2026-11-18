@@ -99,6 +99,16 @@ export function InvoicesList() {
         id: "period",
         header: "Období",
         accessorFn: formatPeriod,
+        Cell: ({ cell, row }) => (
+          <Group gap={6} wrap="nowrap">
+            <Text size="sm">{cell.getValue<string>()}</Text>
+            {!row.original.fromTimesheet && (
+              <Badge size="xs" variant="outline" color="gray">
+                bez výkazu
+              </Badge>
+            )}
+          </Group>
+        ),
         // Chronologically by the timesheet period, not alphabetically by month name.
         sortingFn: (a, b) => periodKey(a.original) - periodKey(b.original),
       },

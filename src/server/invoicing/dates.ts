@@ -77,3 +77,20 @@ export function computeInvoiceDates(
     periodLabel: MONTH_NAMES_CS[period.month - 1]!,
   };
 }
+
+/**
+ * Dates of an invoice not based on a timesheet: the user picks the issue date, which
+ * is also the performance date; the due date follows the rules as if the issue month
+ * were the reported period.
+ */
+export function computeManualInvoiceDates(
+  issueDate: string,
+  rules: InvoiceDateRules = defaultInvoiceDateRules,
+): ComputedInvoiceDates {
+  const issue = dayjs(issueDate);
+  const fromRules = computeInvoiceDates(
+    { year: issue.year(), month: issue.month() + 1 },
+    rules,
+  );
+  return { ...fromRules, issueDate, performanceDate: issueDate };
+}

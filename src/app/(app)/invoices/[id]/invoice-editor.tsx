@@ -11,6 +11,7 @@ import {
   Badge,
   Button,
   Card,
+  Checkbox,
   Grid,
   Group,
   NumberInput,
@@ -72,6 +73,7 @@ export function InvoiceEditor({ invoice }: { invoice: Invoice }) {
     performanceDate: invoice.performanceDate,
     periodLabel: invoice.periodLabel ?? "",
     status: invoice.status,
+    fromTimesheet: invoice.fromTimesheet,
     note: invoice.note ?? "",
   });
 
@@ -80,6 +82,9 @@ export function InvoiceEditor({ invoice }: { invoice: Invoice }) {
       notifications.show({ color: "green", message: "Faktura uložena." });
       await utils.invoice.get.invalidate({ id: invoice.id });
       await utils.invoice.list.invalidate();
+      // `invoice` comes from the server page — without a refresh the badge and the
+      // delete button keep showing the status from before the save.
+      router.refresh();
     },
     onError: (e) => notifications.show({ color: "red", message: e.message }),
   });
@@ -96,7 +101,7 @@ export function InvoiceEditor({ invoice }: { invoice: Invoice }) {
   // renamed) — so we re-derive the rate the timesheet is billed at from the payer +
   // invoiced period again, same as when the draft was created.
   const period =
-    invoice.sourceYear && invoice.sourceMonth
+    invoice.fromTimesheet && invoice.sourceYear && invoice.sourceMonth
       ? `${invoice.sourceYear}${String(invoice.sourceMonth).padStart(2, "0")}`
       : null;
   const customersQuery = api.customer.list.useQuery({ userId: invoice.userId });
@@ -314,6 +319,17 @@ export function InvoiceEditor({ invoice }: { invoice: Invoice }) {
               clearable
               value={meta.performanceDate}
               onChange={(value) => setMeta((m) => ({ ...m, performanceDate: value }))}
+            />
+          </Grid.Col>
+          <Grid.Col span={12}>
+            <Checkbox
+              label="Faktura podle výkazu"
+              description="Bez zaškrtnutí se k faktuře nenabízí výkazy z jejího měsíce"
+              checked={meta.fromTimesheet}
+              onChange={(e) => {
+                const checked = e.currentTarget.checked;
+                setMeta((m) => ({ ...m, fromTimesheet: checked }));
+              }}
             />
           </Grid.Col>
           <Grid.Col span={12}>

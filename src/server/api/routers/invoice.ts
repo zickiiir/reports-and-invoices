@@ -9,12 +9,14 @@ import {
   invoiceItems,
   invoiceNumberCounters,
   invoiceStatusEnum,
+  type InvoiceDateRules,
   invoices,
   payers,
   users,
 } from "~/server/db/schema";
 import {
   computeInvoiceDates,
+  computeManualInvoiceDates,
   defaultInvoiceDateRules,
 } from "~/server/invoicing/dates";
 import { applyLineItemTemplate } from "~/server/invoicing/line-item";
@@ -39,6 +41,37 @@ const itemInput = z.object({
 /** `YYYY-MM-DD` — a malformed or empty string would otherwise reach Postgres and fail
  * the whole save with an "invalid input syntax for type date" error. */
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+/** A real calendar day — `isoDate` alone lets "2025-13-40" through to the date math. */
+const calendarDate = isoDate.refine((v) => {
+  const date = new Date(`${v}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === v;
+}, "Neplatné datum.");
+
+/** From a timesheet the reported month decides the series; without one the issue date. */
+const draftSource = z.discriminatedUnion("fromTimesheet", [
+  z.object({
+    fromTimesheet: z.literal(true),
+    sourceYear: z.number().int(),
+    sourceMonth: z.number().int().min(1).max(12),
+  }),
+  z.object({ fromTimesheet: z.literal(false), issueDate: calendarDate }),
+]);
+
+function resolveDraftSource(
+  source: z.infer<typeof draftSource>,
+  rules: InvoiceDateRules,
+) {
+  if (source.fromTimesheet) {
+    const { sourceYear: year, sourceMonth: month } = source;
+    return { year, month, dates: computeInvoiceDates({ year, month }, rules) };
+  }
+  return {
+    year: Number(source.issueDate.slice(0, 4)),
+    month: Number(source.issueDate.slice(5, 7)),
+    dates: computeManualInvoiceDates(source.issueDate, rules),
+  };
+}
 
 /** Postgres `unique_violation`, possibly wrapped by drizzle in `cause`. */
 function isUniqueViolation(err: unknown): boolean {
@@ -97,8 +130,7 @@ export const invoiceRouter = createTRPCRouter({
     .input(
       z.object({
         payerId: z.string().uuid(),
-        sourceYear: z.number().int(),
-        sourceMonth: z.number().int().min(1).max(12),
+        source: draftSource,
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -110,16 +142,26 @@ export const invoiceRouter = createTRPCRouter({
 
       const owner = await ctx.db.query.users.findFirst({
         where: eq(users.id, payer.userId),
-        columns: { invoiceNumberingScope: true },
+        columns: { invoiceNumberingScope: true, invoiceDateRules: true },
       });
+      const { year, month, dates } = resolveDraftSource(
+        input.source,
+        owner?.invoiceDateRules ?? defaultInvoiceDateRules,
+      );
       const state = await getNumberingState(
         ctx.db,
         payer.userId,
         owner?.invoiceNumberingScope ?? "month",
-        input.sourceYear,
-        input.sourceMonth,
+        year,
+        month,
+        dates.issueDate,
       );
-      return { next: state.next, free: state.free, suggested: state.suggested };
+      return {
+        next: state.next,
+        free: state.free,
+        suggested: state.suggested,
+        issueDate: dates.issueDate,
+      };
     }),
 
   /** The logged-in user's numbering sequence state for a given period (settings). */
@@ -193,8 +235,7 @@ export const invoiceRouter = createTRPCRouter({
     .input(
       z.object({
         payerId: z.string().uuid(),
-        sourceYear: z.number().int(),
-        sourceMonth: z.number().int().min(1).max(12),
+        source: draftSource,
         variableSymbol: z.string().optional(),
         constantSymbol: z.string().optional(),
         note: z.string().optional(),
@@ -218,15 +259,18 @@ export const invoiceRouter = createTRPCRouter({
         where: and(eq(customers.payerId, payer.id), eq(customers.archived, false)),
       });
 
-      const period = `${input.sourceYear}${String(input.sourceMonth).padStart(2, "0")}`;
-      const dates = computeInvoiceDates(
-        { year: input.sourceYear, month: input.sourceMonth },
+      const { fromTimesheet } = input.source;
+      const { year, month, dates } = resolveDraftSource(
+        input.source,
         owner.invoiceDateRules ?? defaultInvoiceDateRules,
       );
 
-      const rawTimesheet = await readTimesheetRaw(payer.userId, period);
-      const parsed = parseTimesheet(rawTimesheet, period);
-      const hoursByAlias = new Map(parsed.timesheets.map((t) => [t.name, t.hours]));
+      const hoursByAlias = new Map<string, number>();
+      if (fromTimesheet) {
+        const period = `${year}${String(month).padStart(2, "0")}`;
+        const parsed = parseTimesheet(await readTimesheetRaw(payer.userId, period), period);
+        for (const t of parsed.timesheets) hoursByAlias.set(t.name, t.hours);
+      }
 
       const items = payerCustomers
         .map((c) => ({
@@ -261,8 +305,9 @@ export const invoiceRouter = createTRPCRouter({
           ctx.db,
           payer.userId,
           owner.invoiceNumberingScope,
-          input.sourceYear,
-          input.sourceMonth,
+          year,
+          month,
+          dates.issueDate,
         );
         if (!state.free.includes(input.number)) {
           throw new TRPCError({
@@ -276,8 +321,8 @@ export const invoiceRouter = createTRPCRouter({
           ctx.db,
           payer.userId,
           owner.invoiceNumberingScope,
-          input.sourceYear,
-          input.sourceMonth,
+          year,
+          month,
         );
       }
 
@@ -296,8 +341,9 @@ export const invoiceRouter = createTRPCRouter({
           dueDate: dates.dueDate,
           performanceDate: dates.performanceDate,
           periodLabel: dates.periodLabel,
-          sourceYear: input.sourceYear,
-          sourceMonth: input.sourceMonth,
+          sourceYear: year,
+          sourceMonth: month,
+          fromTimesheet,
           status: "draft",
           totalAmount: String(total),
           note: input.note,
@@ -346,6 +392,7 @@ export const invoiceRouter = createTRPCRouter({
         performanceDate: isoDate.nullable().optional(),
         periodLabel: z.string().optional(),
         status: z.enum(invoiceStatusEnum.enumValues).optional(),
+        fromTimesheet: z.boolean().optional(),
         note: z.string().optional(),
         items: z.array(itemInput).min(1),
       }),
@@ -372,6 +419,7 @@ export const invoiceRouter = createTRPCRouter({
             performanceDate: input.performanceDate,
             periodLabel: input.periodLabel,
             status: input.status,
+            fromTimesheet: input.fromTimesheet,
             note: input.note,
             totalAmount: String(totalAmount),
           })

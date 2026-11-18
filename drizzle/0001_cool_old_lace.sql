@@ -1,0 +1,1 @@
+ALTER TABLE "reports_and_invoices_invoice" ADD COLUMN "from_timesheet" boolean DEFAULT true NOT NULL;

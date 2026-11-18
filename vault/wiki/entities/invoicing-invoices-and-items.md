@@ -5,7 +5,7 @@ domain: invoicing
 status: current
 tags: [data-model, invoices, enums]
 created: 2026-10-11
-updated: 2026-10-11
+updated: 2026-11-18
 sources: [code-inspection]
 related: [invoicing, invoicing-payers-and-customers, invoicing-numbering, invoicing-creation-flow, platform-db-schema-overview]
 ---
@@ -30,7 +30,8 @@ Tři tabulky pro fakturu, její řádky a počítadlo čísel, plus dva enumy.
 - `variableSymbol`, `constantSymbol` — `varchar(30)`, volitelné.
 - `issueDate`, `dueDate`, `performanceDate` — `date`, volitelné (vystavení, splatnost, DUZP).
 - `periodLabel` — `varchar(32)`, český název měsíce („Červenec“).
-- `sourceYear`, `sourceMonth` — období výkazu, ze kterého faktura vznikla. Editor z nich znovu odvodí výkazy k faktuře.
+- `sourceYear`, `sourceMonth` — období výkazu, ze kterého faktura vznikla. Editor z nich znovu odvodí výkazy k faktuře. U faktury bez výkazu je to rok a měsíc vystavení a slouží jen k zařazení do číselné řady.
+- `fromTimesheet` — `boolean`, default `true` (migrace `0001`). `false` = položky zadané ručně. Editor pak nenabízí výkazy z měsíce faktury.
 - `status` — `invoiceStatusEnum`, default `draft`.
 - `currency` — `varchar(3)`, default `CZK`. Kód ji nikde nemění ani nezobrazuje, PDF píše vždy „Kč“.
 - `totalAmount` — `numeric(12,2)`, default `0`. Přepočítává se při každém `createDraft` a `update` na serveru, ne z klienta.
